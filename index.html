@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Israel Travel Map</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Top bar -->
+  <header class="topbar">
+    <div class="search-wrap">
+      <input id="search-input" type="text" placeholder="Search for a place in Israel…" autocomplete="off" />
+    </div>
+    <div class="filter-chips">
+      <button class="chip active" data-filter="all">All</button>
+      <button class="chip" data-filter="visited">✓ Visited</button>
+      <button class="chip" data-filter="plan">★ Plan to Visit</button>
+      <button class="chip" data-filter="wont">✕ Won't Visit</button>
+      <button class="chip" data-filter="favorite">♥ Favorite</button>
+    </div>
+  </header>
+
+  <!-- Main content -->
+  <div class="main">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <span id="location-count">0 locations</span>
+      </div>
+      <ul id="location-list"></ul>
+    </aside>
+
+    <!-- Map -->
+    <div id="map"></div>
+  </div>
+
+  <!-- Add/Edit Modal -->
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div class="modal">
+      <h2 id="modal-title">Add Location</h2>
+      <div class="modal-field">
+        <label>Name</label>
+        <input id="modal-name" type="text" readonly />
+      </div>
+      <div class="modal-field">
+        <label>Status</label>
+        <div class="status-radios">
+          <label class="radio-label visited">
+            <input type="radio" name="status" value="visited" /> ✓ Visited
+          </label>
+          <label class="radio-label plan">
+            <input type="radio" name="status" value="plan" /> ★ Plan to Visit
+          </label>
+          <label class="radio-label wont">
+            <input type="radio" name="status" value="wont" /> ✕ Won't Visit
+          </label>
+          <label class="radio-label favorite">
+            <input type="radio" name="status" value="favorite" /> ♥ Favorite
+          </label>
+        </div>
+      </div>
+      <div class="modal-field">
+        <label for="modal-notes">Notes</label>
+        <textarea id="modal-notes" rows="4" placeholder="Add any notes about this place…"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button id="modal-save" class="btn-primary">Save</button>
+        <button id="modal-delete" class="btn-danger hidden">Delete</button>
+        <button id="modal-cancel" class="btn-secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <!--
+    IMPORTANT: Replace YOUR_API_KEY below with your Google Maps API key.
+    See CLAUDE.md for instructions on how to get one.
+  -->
+  <script
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBYh0vnLLnZb8G0GOzxWNSRpnJfPPvDZ6I&libraries=places&callback=initMap"
+    async defer>
+  </script>
+</body>
+</html>

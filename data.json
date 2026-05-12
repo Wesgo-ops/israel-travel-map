@@ -1,0 +1,31 @@
+{
+  "locations": [
+    {
+      "id": "d98f09c9-5bae-4c03-bdfc-341c9cadc1cf",
+      "name": "חוף נווה מדבר",
+      "lat": 31.758433,
+      "lng": 35.502015,
+      "status": "visited",
+      "notes": "",
+      "addedAt": "2026-05-12T12:13:32.806Z"
+    },
+    {
+      "id": "e10c2153-7917-41a1-9bb0-7a21df8154da",
+      "name": "Ein Prat Nature Reserve",
+      "lat": 31.8314794,
+      "lng": 35.3069669,
+      "status": "visited",
+      "notes": "",
+      "addedAt": "2026-05-12T12:13:41.602Z"
+    },
+    {
+      "id": "d9f008e0-e78a-4a4a-9bee-e3db68a3a9d3",
+      "name": "חניון אורן זמיר",
+      "lat": 32.5676586,
+      "lng": 35.0739565,
+      "status": "plan",
+      "notes": "",
+      "addedAt": "2026-05-12T12:18:17.994Z"
+    }
+  ]
+}

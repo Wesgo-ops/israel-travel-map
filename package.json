@@ -1,0 +1,12 @@
+{
+  "name": "israel-travel-map",
+  "version": "1.0.0",
+  "description": "Interactive map of travels in Israel",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

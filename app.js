@@ -96,26 +96,30 @@ function saveData() {
 }
 
 // ── Markers ────────────────────────────────────────────────────────────────────
-function markerIcon(status, role) {
+function markerIcon(status, role, name) {
   const s = STATUS[status];
   let fill = s.bg;
   let stroke = 'white';
   let strokeWidth = 2;
-  // Highlight origin (green ring) or destination (red ring)
   if (role === 'origin') { stroke = '#2e7d32'; strokeWidth = 4; }
   if (role === 'dest')   { stroke = '#c62828'; strokeWidth = 4; }
 
+  const label = name ? (name.length > 12 ? name.slice(0, 11) + '…' : name) : '';
+
   const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="44" viewBox="0 0 36 44">
-      <path d="M18 0C8 0 0 8 0 18c0 12 18 26 18 26S36 30 36 18C36 8 28 0 18 0z"
+    <svg xmlns="http://www.w3.org/2000/svg" width="80" height="62" viewBox="0 0 80 62">
+      <path d="M40 0C30 0 22 8 22 18c0 12 18 26 18 26S58 30 58 18C58 8 50 0 40 0z"
             fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}"/>
-      <text x="18" y="24" text-anchor="middle" font-size="16" fill="white"
+      <text x="40" y="24" text-anchor="middle" font-size="16" fill="white"
             font-family="Arial,sans-serif">${s.icon}</text>
+      <rect x="1" y="46" width="78" height="15" rx="7" fill="white" fill-opacity="0.88"/>
+      <text x="40" y="58" text-anchor="middle" font-size="10" fill="#333"
+            font-family="Arial,sans-serif" font-weight="600">${escapeHtml(label)}</text>
     </svg>`;
   return {
     url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
-    scaledSize: new google.maps.Size(36, 44),
-    anchor: new google.maps.Point(18, 44),
+    scaledSize: new google.maps.Size(80, 62),
+    anchor: new google.maps.Point(40, 44),
   };
 }
 
@@ -124,7 +128,7 @@ function addMarker(loc) {
     position: { lat: loc.lat, lng: loc.lng },
     map,
     title: loc.name,
-    icon: markerIcon(loc.status),
+    icon: markerIcon(loc.status, undefined, loc.name),
   });
 
   marker.addListener('click', () => {
@@ -141,7 +145,7 @@ function addMarker(loc) {
 
 function updateMarkerIcon(id, role) {
   const loc = locations.find(l => l.id === id);
-  if (loc && markers[id]) markers[id].setIcon(markerIcon(loc.status, role));
+  if (loc && markers[id]) markers[id].setIcon(markerIcon(loc.status, role, loc.name));
 }
 
 function removeMarker(id) {

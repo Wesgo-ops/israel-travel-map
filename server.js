@@ -6,7 +6,19 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const DATA_FILE = process.env.DATA_FILE || path.join(__dirname, 'data.json');
 
+const dataDir = path.dirname(DATA_FILE);
+if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+if (!fs.existsSync(DATA_FILE)) fs.writeFileSync(DATA_FILE, JSON.stringify({ locations: [] }, null, 2));
+
 app.use(express.json());
+
+app.get('/data.json', (req, res) => {
+  fs.readFile(DATA_FILE, 'utf8', (err, data) => {
+    if (err) return res.json({ locations: [] });
+    try { res.json(JSON.parse(data)); } catch { res.json({ locations: [] }); }
+  });
+});
+
 app.use(express.static(__dirname));
 
 app.post('/save', (req, res) => {
@@ -18,4 +30,5 @@ app.post('/save', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Israel Travel Map running at http://localhost:${PORT}`);
+  console.log(`Data file: ${DATA_FILE}`);
 });

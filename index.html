@@ -13,12 +13,6 @@
     <div class="search-wrap">
       <input id="search-input" type="text" placeholder="Search for a place in Israel…" autocomplete="off" />
     </div>
-    <button id="sidebar-toggle" class="sidebar-toggle" aria-label="Show locations list">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-        <line x1="3" y1="7" x2="21" y2="7"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="17" x2="21" y2="17"/>
-      </svg>
-      <span id="toggle-count">0</span>
-    </button>
     <div class="filter-chips">
       <button class="chip active" data-filter="all">All</button>
       <button class="chip" data-filter="visited">✓ Visited</button>
@@ -26,16 +20,36 @@
       <button class="chip" data-filter="wont">✕ Won't Visit</button>
       <button class="chip" data-filter="favorite">♥ Favorite</button>
     </div>
+    <button id="btn-directions" class="chip directions-chip">&#x2192; Directions</button>
   </header>
+
+  <!-- Directions bar (shown when directions mode is active) -->
+  <div id="directions-bar" class="directions-bar hidden">
+    <div class="dir-field">
+      <span class="dir-label">From</span>
+      <span id="dir-origin-name" class="dir-value">—</span>
+      <button id="dir-my-location" class="dir-btn">&#x25CE; My Location</button>
+    </div>
+    <div class="dir-arrow">&#x2193;</div>
+    <div class="dir-field">
+      <span class="dir-label">To</span>
+      <span id="dir-dest-name" class="dir-value">—</span>
+    </div>
+    <div class="dir-actions">
+      <span id="dir-summary" class="dir-summary"></span>
+      <button id="dir-google-maps" class="dir-btn dir-btn-nav hidden">Google Maps</button>
+      <button id="dir-waze" class="dir-btn dir-btn-nav hidden">Waze</button>
+      <button id="dir-clear" class="dir-btn dir-btn-clear">✕ Clear</button>
+    </div>
+    <p class="dir-hint" id="dir-hint">Click a pin on the map to set the start point, or use My Location.</p>
+  </div>
 
   <!-- Main content -->
   <div class="main">
-    <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
     <!-- Sidebar -->
     <aside class="sidebar">
       <div class="sidebar-header">
         <span id="location-count">0 locations</span>
-        <button id="sidebar-close" class="sidebar-close" aria-label="Close">✕</button>
       </div>
       <ul id="location-list"></ul>
     </aside>
@@ -47,7 +61,6 @@
   <!-- Add/Edit Modal -->
   <div id="modal-overlay" class="modal-overlay hidden">
     <div class="modal">
-      <div class="modal-drag-handle"></div>
       <h2 id="modal-title">Add Location</h2>
       <div class="modal-field">
         <label>Name</label>

@@ -1,9 +1,10 @@
 // ── State ────────────────────────────────────────────────────────────────────
 let map;
-let locations   = [];
-let markers     = {};
-let itineraries = [];
-let notesLists  = [];
+let locations    = [];
+let markers      = {};
+let itineraries  = [];
+let notesLists   = [];
+let homeLocations = [];
 let activeFilter = 'all';
 let activeTab    = 'locations';
 let pendingPlace = null;
@@ -11,11 +12,17 @@ let editingId    = null;
 let editingTripId = null;
 
 // ── Directions state ──────────────────────────────────────────────────────────
-let directionsMode = false;
-let dirOrigin = null;
-let dirDest   = null;
+let directionsMode     = false;
+let dirStops           = [null, null]; // array of {name,lat,lng} or null
 let directionsService  = null;
 let directionsRenderer = null;
+
+// ── Trip item / homes modal state ─────────────────────────────────────────────
+let addingTripItemForTripId = null;
+let tripItemSelectedPlace   = null;
+let tripItemAutocomplete    = null;
+let tripDestAutocomplete    = null;
+let homeSelectedPlace       = null;
 
 // ── Status config ─────────────────────────────────────────────────────────────
 const STATUS = {
@@ -47,6 +54,8 @@ function initMap() {
   initFilterChips();
   initModal();
   initTripModal();
+  initTripItemModal();
+  initHomesModal();
   initDirections();
   initSidebarToggle();
   initTabs();
@@ -98,14 +107,16 @@ function loadData() {
   fetch('/data.json')
     .then(r => r.json())
     .then(data => {
-      locations   = data.locations   || [];
-      itineraries = data.itineraries || [];
-      notesLists  = data.notesLists  || [];
+      locations     = data.locations     || [];
+      itineraries   = data.itineraries   || [];
+      notesLists    = data.notesLists    || [];
+      homeLocations = data.homeLocations || [];
       if (notesLists.length === 0) seedNotesLists();
       locations.forEach(addMarker);
       renderLocationsTab();
       renderItineraryTab();
       renderNotesTab();
+      renderDirHomeBtns();
     })
     .catch(() => {
       locations = [];
@@ -119,25 +130,19 @@ function saveData() {
   fetch('/save', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ locations, itineraries, notesLists }),
+    body: JSON.stringify({ locations, itineraries, notesLists, homeLocations }),
   });
 }
 
 // ── Markers ───────────────────────────────────────────────────────────────────
-function markerIcon(status, role, name) {
+function markerIcon(status, _role, name) {
   const s = STATUS[status];
-  let fill = s.bg;
-  let stroke = 'white';
-  let strokeWidth = 2;
-  if (role === 'origin') { stroke = '#2e7d32'; strokeWidth = 4; }
-  if (role === 'dest')   { stroke = '#c62828'; strokeWidth = 4; }
-
   const label = name ? (name.length > 12 ? name.slice(0, 11) + '…' : name) : '';
 
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="80" height="62" viewBox="0 0 80 62">
       <path d="M40 0C30 0 22 8 22 18c0 12 18 26 18 26S58 30 58 18C58 8 50 0 40 0z"
-            fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}"/>
+            fill="${s.bg}" stroke="white" stroke-width="2"/>
       <text x="40" y="24" text-anchor="middle" font-size="16" fill="white"
             font-family="Arial,sans-serif">${s.icon}</text>
       <rect x="1" y="46" width="78" height="15" rx="7" fill="white" fill-opacity="0.88"/>
@@ -168,9 +173,9 @@ function addMarker(loc) {
   applyFilterToMarker(loc.id);
 }
 
-function updateMarkerIcon(id, role) {
+function updateMarkerIcon(id) {
   const loc = locations.find(l => l.id === id);
-  if (loc && markers[id]) markers[id].setIcon(markerIcon(loc.status, role, loc.name));
+  if (loc && markers[id]) markers[id].setIcon(markerIcon(loc.status, undefined, loc.name));
 }
 
 function removeMarker(id) {
@@ -194,16 +199,13 @@ function initTabs() {
 function renderLocationsTab() {
   const list    = document.getElementById('location-list');
   const visible = locations.filter(l => activeFilter === 'all' || l.status === activeFilter);
-  const count   = visible.length;
 
-  // Stats
   document.getElementById('stat-total').textContent   = locations.length;
   document.getElementById('stat-visited').textContent = locations.filter(l => l.status === 'visited').length;
   document.getElementById('stat-planned').textContent = locations.filter(l => l.status === 'plan').length;
 
-  // Toggle button count
   const toggleCount = document.getElementById('toggle-count');
-  if (toggleCount) toggleCount.textContent = count;
+  if (toggleCount) toggleCount.textContent = visible.length;
 
   list.innerHTML = '';
   visible.forEach(loc => {
@@ -237,7 +239,6 @@ function renderLocationsTab() {
       <textarea class="loc-notes-input" rows="2" placeholder="Notes…">${escapeHtml(loc.notes || '')}</textarea>
     `;
 
-    // Header click → pan + open modal
     li.querySelector('.loc-card-header').addEventListener('click', () => {
       closeSidebarDrawer();
       map.panTo({ lat: loc.lat, lng: loc.lng });
@@ -245,26 +246,22 @@ function renderLocationsTab() {
       openModal({ id: loc.id });
     });
 
-    // Quick status buttons
     li.querySelectorAll('.quick-btn').forEach(btn => {
       btn.addEventListener('click', e => {
         e.stopPropagation();
-        const newStatus = btn.dataset.status;
-        loc.status = newStatus;
+        loc.status = btn.dataset.status;
         updateMarkerIcon(loc.id);
         saveData();
         renderLocationsTab();
       });
     });
 
-    // Inline notes auto-save
     const notesTA = li.querySelector('.loc-notes-input');
     notesTA.addEventListener('blur', () => {
       loc.notes = notesTA.value.trim();
       saveData();
     });
 
-    // Delete button
     li.querySelector('.loc-delete-btn').addEventListener('click', e => {
       e.stopPropagation();
       if (!confirm(`Delete "${loc.name}"?`)) return;
@@ -325,7 +322,6 @@ function initModal() {
 function openModal({ id, place } = {}) {
   editingId = id || null;
   const overlay    = document.getElementById('modal-overlay');
-  const title      = document.getElementById('modal-title');
   const nameInput  = document.getElementById('modal-name');
   const notesInput = document.getElementById('modal-notes');
   const catSelect  = document.getElementById('modal-category');
@@ -333,17 +329,17 @@ function openModal({ id, place } = {}) {
 
   if (id) {
     const loc = locations.find(l => l.id === id);
-    title.textContent   = 'Edit Location';
-    nameInput.value     = loc.name;
-    notesInput.value    = loc.notes || '';
-    catSelect.value     = loc.category || '';
+    document.getElementById('modal-title').textContent = 'Edit Location';
+    nameInput.value  = loc.name;
+    notesInput.value = loc.notes || '';
+    catSelect.value  = loc.category || '';
     setRadio(loc.status);
     deleteBtn.classList.remove('hidden');
   } else {
-    title.textContent   = 'Add Location';
-    nameInput.value     = place.name;
-    notesInput.value    = '';
-    catSelect.value     = '';
+    document.getElementById('modal-title').textContent = 'Add Location';
+    nameInput.value  = place.name;
+    notesInput.value = '';
+    catSelect.value  = '';
     setRadio('visited');
     deleteBtn.classList.add('hidden');
   }
@@ -423,75 +419,141 @@ function initDirections() {
   document.getElementById('btn-directions').addEventListener('click', toggleDirectionsMode);
   document.getElementById('dir-clear').addEventListener('click', clearDirections);
   document.getElementById('dir-my-location').addEventListener('click', useMyLocation);
+  document.getElementById('dir-add-stop').addEventListener('click', () => {
+    dirStops.push(null);
+    renderDirStops();
+  });
   document.getElementById('dir-google-maps').addEventListener('click', openInGoogleMaps);
   document.getElementById('dir-waze').addEventListener('click', openInWaze);
+  document.getElementById('dir-manage-homes').addEventListener('click', openHomesModal);
+
+  renderDirStops();
 }
 
 function toggleDirectionsMode() {
   directionsMode = !directionsMode;
-  const btn = document.getElementById('btn-directions');
-  const bar = document.getElementById('directions-bar');
-  btn.classList.toggle('active', directionsMode);
-  bar.classList.toggle('hidden', !directionsMode);
+  document.getElementById('btn-directions').classList.toggle('active', directionsMode);
+  document.getElementById('directions-bar').classList.toggle('hidden', !directionsMode);
   document.getElementById('map').classList.toggle('dir-selecting', directionsMode);
-  if (!directionsMode) clearDirections();
-}
-
-function onDirectionsMarkerClick(loc) {
-  const point = { name: loc.name, lat: loc.lat, lng: loc.lng };
-  if (!dirOrigin) {
-    setDirOrigin(point);
-  } else if (!dirDest) {
-    setDirDest(point);
-    drawRoute();
-  } else {
-    resetDirMarkers();
-    dirDest = null;
+  if (!directionsMode) {
+    dirStops = [null, null];
     clearRouteDisplay();
-    setDirOrigin(point);
+    renderDirStops();
   }
 }
 
-function setDirOrigin(point) {
-  dirOrigin = point;
-  document.getElementById('dir-origin-name').textContent = point.name;
-  document.getElementById('dir-origin-name').className   = 'dir-value set-origin';
-  document.getElementById('dir-hint').textContent = 'Now click a pin to set the destination.';
-  const loc = locations.find(l => Math.abs(l.lat - point.lat) < 0.0001);
-  if (loc) updateMarkerIcon(loc.id, 'origin');
+function onDirectionsMarkerClick(loc) {
+  addDirStop({ name: loc.name, lat: loc.lat, lng: loc.lng });
 }
 
-function setDirDest(point) {
-  dirDest = point;
-  document.getElementById('dir-dest-name').textContent = point.name;
-  document.getElementById('dir-dest-name').className   = 'dir-value set-dest';
-  document.getElementById('dir-hint').textContent = '';
-  const loc = locations.find(l => Math.abs(l.lat - point.lat) < 0.0001);
-  if (loc) updateMarkerIcon(loc.id, 'dest');
+function addDirStop(point) {
+  const idx = dirStops.indexOf(null);
+  if (idx !== -1) {
+    dirStops[idx] = point;
+  } else {
+    dirStops.push(point);
+  }
+  renderDirStops();
+  if (dirStops.filter(Boolean).length >= 2) drawRoute();
+}
+
+function clearDirStop(idx) {
+  dirStops[idx] = null;
+  while (dirStops.length > 2 && dirStops[dirStops.length - 1] === null) {
+    dirStops.pop();
+  }
+  renderDirStops();
+  if (dirStops.filter(Boolean).length >= 2) drawRoute();
+  else clearRouteDisplay();
+}
+
+function renderDirStops() {
+  const container = document.getElementById('dir-stops-list');
+  container.innerHTML = '';
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+  dirStops.forEach((stop, idx) => {
+    if (idx > 0) {
+      const arrow = document.createElement('div');
+      arrow.className = 'dir-stop-arrow';
+      arrow.textContent = '↓';
+      container.appendChild(arrow);
+    }
+
+    const row = document.createElement('div');
+    row.className = 'dir-stop';
+
+    const labelEl = document.createElement('div');
+    labelEl.className = 'dir-stop-label';
+    labelEl.textContent = letters[idx] || String(idx + 1);
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'dir-stop-name' + (stop ? '' : ' empty');
+    nameEl.textContent = stop ? stop.name : 'Click a pin to set…';
+
+    const clearBtn = document.createElement('button');
+    clearBtn.className = 'dir-stop-clear';
+    clearBtn.textContent = '✕';
+    clearBtn.title = 'Clear stop';
+    clearBtn.addEventListener('click', () => clearDirStop(idx));
+
+    row.appendChild(labelEl);
+    row.appendChild(nameEl);
+    row.appendChild(clearBtn);
+    container.appendChild(row);
+  });
+
+  const filled = dirStops.filter(Boolean).length;
+  const hint = document.getElementById('dir-hint');
+  if (filled === 0) {
+    hint.textContent = 'Click a pin on the map to set a stop.';
+  } else if (filled === 1) {
+    hint.textContent = 'Click another pin to add the next stop.';
+  } else {
+    hint.textContent = '';
+  }
 }
 
 function useMyLocation() {
   if (!navigator.geolocation) { alert('Geolocation not supported.'); return; }
   navigator.geolocation.getCurrentPosition(
-    pos => {
-      resetDirMarkers(); dirOrigin = null; dirDest = null; clearRouteDisplay();
-      setDirOrigin({ name: 'My Location', lat: pos.coords.latitude, lng: pos.coords.longitude });
-    },
+    pos => addDirStop({ name: '📍 My Location', lat: pos.coords.latitude, lng: pos.coords.longitude }),
     () => alert('Could not get your location.')
   );
 }
 
 function drawRoute() {
-  if (!dirOrigin || !dirDest) return;
+  const filled = dirStops.filter(Boolean);
+  if (filled.length < 2) return;
+
+  const origin      = filled[0];
+  const destination = filled[filled.length - 1];
+  const waypoints   = filled.slice(1, -1).map(s => ({
+    location: { lat: s.lat, lng: s.lng },
+    stopover: true,
+  }));
+
   directionsService.route(
-    { origin: { lat: dirOrigin.lat, lng: dirOrigin.lng },
-      destination: { lat: dirDest.lat, lng: dirDest.lng },
-      travelMode: google.maps.TravelMode.DRIVING },
+    {
+      origin:      { lat: origin.lat, lng: origin.lng },
+      destination: { lat: destination.lat, lng: destination.lng },
+      waypoints,
+      travelMode:  google.maps.TravelMode.DRIVING,
+    },
     (result, status) => {
       if (status === 'OK') {
         directionsRenderer.setDirections(result);
-        const leg = result.routes[0].legs[0];
-        document.getElementById('dir-summary').textContent = `${leg.distance.text} · ${leg.duration.text}`;
+        let totalDist = 0, totalDur = 0;
+        result.routes[0].legs.forEach(leg => {
+          totalDist += leg.distance.value;
+          totalDur  += leg.duration.value;
+        });
+        const distKm = (totalDist / 1000).toFixed(1) + ' km';
+        const durMin = Math.round(totalDur / 60);
+        const durStr = durMin >= 60
+          ? `${Math.floor(durMin / 60)} h ${durMin % 60} min`
+          : `${durMin} min`;
+        document.getElementById('dir-summary').textContent = `${distKm} · ${durStr}`;
         document.getElementById('dir-google-maps').classList.remove('hidden');
         document.getElementById('dir-waze').classList.remove('hidden');
       } else {
@@ -508,30 +570,173 @@ function clearRouteDisplay() {
   document.getElementById('dir-waze').classList.add('hidden');
 }
 
-function resetDirMarkers() {
-  if (dirOrigin) { const l = locations.find(l => Math.abs(l.lat - dirOrigin.lat) < 0.0001); if (l) updateMarkerIcon(l.id); }
-  if (dirDest)   { const l = locations.find(l => Math.abs(l.lat - dirDest.lat)   < 0.0001); if (l) updateMarkerIcon(l.id); }
-}
-
 function clearDirections() {
-  resetDirMarkers();
-  dirOrigin = null; dirDest = null;
+  dirStops = [null, null];
+  renderDirStops();
   clearRouteDisplay();
-  document.getElementById('dir-origin-name').textContent = '—';
-  document.getElementById('dir-origin-name').className   = 'dir-value';
-  document.getElementById('dir-dest-name').textContent   = '—';
-  document.getElementById('dir-dest-name').className     = 'dir-value';
-  document.getElementById('dir-hint').textContent = 'Click a pin on the map to set the start point, or use My Location.';
 }
 
 function openInGoogleMaps() {
-  if (!dirOrigin || !dirDest) return;
-  window.open(`https://www.google.com/maps/dir/?api=1&origin=${dirOrigin.lat},${dirOrigin.lng}&destination=${dirDest.lat},${dirDest.lng}&travelmode=driving`, '_blank');
+  const filled = dirStops.filter(Boolean);
+  if (filled.length < 2) return;
+  const origin      = filled[0];
+  const destination = filled[filled.length - 1];
+  const waypoints   = filled.slice(1, -1).map(s => `${s.lat},${s.lng}`).join('|');
+  let url = `https://www.google.com/maps/dir/?api=1&origin=${origin.lat},${origin.lng}&destination=${destination.lat},${destination.lng}&travelmode=driving`;
+  if (waypoints) url += `&waypoints=${encodeURIComponent(waypoints)}`;
+  window.open(url, '_blank');
 }
 
 function openInWaze() {
-  if (!dirDest) return;
-  window.open(`https://waze.com/ul?ll=${dirDest.lat},${dirDest.lng}&navigate=yes`, '_blank');
+  const filled = dirStops.filter(Boolean);
+  if (filled.length === 0) return;
+  const dest = filled[filled.length - 1];
+  window.open(`https://waze.com/ul?ll=${dest.lat},${dest.lng}&navigate=yes`, '_blank');
+}
+
+// ── Homes Management ──────────────────────────────────────────────────────────
+function initHomesModal() {
+  document.getElementById('homes-close-btn').addEventListener('click', closeHomesModal);
+  document.getElementById('homes-modal-overlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('homes-modal-overlay')) closeHomesModal();
+  });
+  document.getElementById('home-add-btn').addEventListener('click', saveNewHome);
+
+  const homeInput = document.getElementById('home-place-input');
+  const homeAC    = new google.maps.places.Autocomplete(homeInput, {
+    fields: ['name', 'geometry', 'formatted_address'],
+  });
+  homeAC.addListener('place_changed', () => {
+    const place = homeAC.getPlace();
+    if (!place.geometry) return;
+    homeSelectedPlace = {
+      name: place.formatted_address || place.name,
+      lat:  place.geometry.location.lat(),
+      lng:  place.geometry.location.lng(),
+    };
+  });
+}
+
+function saveNewHome() {
+  const label = document.getElementById('home-label-input').value.trim();
+  if (!label) { document.getElementById('home-label-input').focus(); return; }
+  if (!homeSelectedPlace) { document.getElementById('home-place-input').focus(); return; }
+  addHomeLocation(label, homeSelectedPlace.name, homeSelectedPlace.lat, homeSelectedPlace.lng);
+  document.getElementById('home-label-input').value = '';
+  document.getElementById('home-place-input').value = '';
+  homeSelectedPlace = null;
+}
+
+function openHomesModal() {
+  renderHomesModal();
+  document.getElementById('homes-modal-overlay').classList.remove('hidden');
+}
+
+function closeHomesModal() {
+  document.getElementById('homes-modal-overlay').classList.add('hidden');
+  homeSelectedPlace = null;
+}
+
+function renderHomesModal() {
+  const container = document.getElementById('homes-list');
+  if (homeLocations.length === 0) {
+    container.innerHTML = '<p style="padding:10px 0;color:#aaa;font-size:13px;text-align:center;">No homes saved yet.</p>';
+    return;
+  }
+  container.innerHTML = homeLocations.map(h => `
+    <div class="home-item">
+      <div class="home-item-label">${escapeHtml(h.label)}</div>
+      <div class="home-item-name">${escapeHtml(h.name)}</div>
+      <button class="home-item-delete" data-id="${h.id}" title="Delete">🗑</button>
+    </div>`).join('');
+
+  container.querySelectorAll('.home-item-delete').forEach(btn => {
+    btn.addEventListener('click', () => deleteHomeLocation(btn.dataset.id));
+  });
+}
+
+function addHomeLocation(label, name, lat, lng) {
+  homeLocations.push({ id: crypto.randomUUID(), label, name, lat, lng });
+  saveData();
+  renderHomesModal();
+  renderDirHomeBtns();
+}
+
+function deleteHomeLocation(id) {
+  homeLocations = homeLocations.filter(h => h.id !== id);
+  saveData();
+  renderHomesModal();
+  renderDirHomeBtns();
+}
+
+function renderDirHomeBtns() {
+  const container = document.getElementById('dir-home-btns');
+  container.innerHTML = '';
+  homeLocations.forEach(home => {
+    const btn = document.createElement('button');
+    btn.className = 'dir-home-btn';
+    btn.textContent = `🏠 ${home.label}`;
+    btn.title = home.name;
+    btn.addEventListener('click', () => addDirStop({ name: home.label, lat: home.lat, lng: home.lng }));
+    container.appendChild(btn);
+  });
+}
+
+// ── Trip Item Modal ───────────────────────────────────────────────────────────
+function initTripItemModal() {
+  document.getElementById('trip-item-save').addEventListener('click', onTripItemSave);
+  document.getElementById('trip-item-cancel').addEventListener('click', closeTripItemModal);
+  document.getElementById('trip-item-modal-overlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('trip-item-modal-overlay')) closeTripItemModal();
+  });
+
+  const input = document.getElementById('trip-item-place');
+  tripItemAutocomplete = new google.maps.places.Autocomplete(input, {
+    fields: ['name', 'geometry', 'formatted_address'],
+  });
+  tripItemAutocomplete.addListener('place_changed', () => {
+    const place = tripItemAutocomplete.getPlace();
+    if (!place.geometry) return;
+    tripItemSelectedPlace = {
+      name: place.name,
+      lat:  place.geometry.location.lat(),
+      lng:  place.geometry.location.lng(),
+    };
+  });
+}
+
+function openTripItemModal(tripId) {
+  addingTripItemForTripId = tripId;
+  tripItemSelectedPlace   = null;
+  document.getElementById('trip-item-place').value    = '';
+  document.getElementById('trip-item-date').value     = '';
+  document.getElementById('trip-item-category').value = '';
+  document.getElementById('trip-item-notes').value    = '';
+  document.getElementById('trip-item-modal-overlay').classList.remove('hidden');
+  setTimeout(() => document.getElementById('trip-item-place').focus(), 50);
+}
+
+function closeTripItemModal() {
+  document.getElementById('trip-item-modal-overlay').classList.add('hidden');
+  addingTripItemForTripId = null;
+  tripItemSelectedPlace   = null;
+}
+
+function onTripItemSave() {
+  if (!addingTripItemForTripId) return;
+  const nameFromInput = document.getElementById('trip-item-place').value.trim();
+  const name = tripItemSelectedPlace ? tripItemSelectedPlace.name : nameFromInput;
+  if (!name) { document.getElementById('trip-item-place').focus(); return; }
+
+  addTripItem(addingTripItemForTripId, {
+    name,
+    lat:      tripItemSelectedPlace?.lat  ?? null,
+    lng:      tripItemSelectedPlace?.lng  ?? null,
+    date:     document.getElementById('trip-item-date').value,
+    category: document.getElementById('trip-item-category').value,
+    notes:    document.getElementById('trip-item-notes').value.trim(),
+  });
+  closeTripItemModal();
 }
 
 // ── Itinerary Tab ─────────────────────────────────────────────────────────────
@@ -542,6 +747,12 @@ function initTripModal() {
   document.getElementById('trip-modal-overlay').addEventListener('click', e => {
     if (e.target === document.getElementById('trip-modal-overlay')) closeTripModal();
   });
+
+  // Worldwide Places Autocomplete for destination
+  tripDestAutocomplete = new google.maps.places.Autocomplete(
+    document.getElementById('trip-destination'),
+    { fields: ['name', 'formatted_address'] }
+  );
 }
 
 function openTripModal(tripId) {
@@ -650,10 +861,6 @@ function renderItineraryTab() {
         </div>`;
     }).join('');
 
-    const categoryOptions = CATEGORIES.map(c =>
-      `<option value="${escapeHtml(c)}">${escapeHtml(c || '— Category —')}</option>`
-    ).join('');
-
     card.innerHTML = `
       <div class="trip-header">
         <span class="trip-chevron">▶</span>
@@ -664,70 +871,43 @@ function renderItineraryTab() {
         <button class="trip-delete-btn" title="Delete trip">🗑</button>
       </div>
       <div class="trip-body">
-        ${trip.notes ? `
         <div class="trip-notes-section">
-          <textarea class="trip-notes-input" rows="2" placeholder="Trip notes…">${escapeHtml(trip.notes)}</textarea>
-        </div>` : `
-        <div class="trip-notes-section">
-          <textarea class="trip-notes-input" rows="2" placeholder="Trip notes…"></textarea>
-        </div>`}
+          <textarea class="trip-notes-input" rows="2" placeholder="Trip notes…">${escapeHtml(trip.notes || '')}</textarea>
+        </div>
         <div class="trip-items-list">${itemsHtml}</div>
-        <div class="add-trip-item-form">
-          <input class="new-item-name" type="text" placeholder="Place name (e.g. Masada)" />
-          <div class="add-trip-item-form-row">
-            <input class="new-item-date" type="date" />
-            <select class="new-item-category">${categoryOptions}</select>
-          </div>
-          <input class="new-item-notes" type="text" placeholder="Notes (optional)" />
+        <div style="padding:10px 12px;border-top:1px solid #f0f0f0;">
           <button class="add-item-btn">+ Add Place</button>
         </div>
       </div>`;
 
-    // Toggle collapse
     card.querySelector('.trip-header').addEventListener('click', e => {
       if (e.target.closest('.trip-delete-btn')) return;
       card.classList.toggle('open');
     });
 
-    // Delete trip
     card.querySelector('.trip-delete-btn').addEventListener('click', e => {
       e.stopPropagation();
       deleteTrip(trip.id);
     });
 
-    // Notes auto-save
     card.querySelector('.trip-notes-input').addEventListener('blur', function() {
       trip.notes = this.value.trim();
       saveData();
     });
 
-    // Item status cycle
     card.querySelectorAll('.trip-item-status-btn').forEach(btn => {
       const itemId = btn.closest('.trip-item').dataset.itemId;
       btn.addEventListener('click', () => cycleTripItemStatus(trip.id, itemId));
     });
 
-    // Item delete
     card.querySelectorAll('.trip-item-delete').forEach(btn => {
       const itemId = btn.closest('.trip-item').dataset.itemId;
       btn.addEventListener('click', () => deleteTripItem(trip.id, itemId));
     });
 
-    // Add item
     card.querySelector('.add-item-btn').addEventListener('click', () => {
-      const name = card.querySelector('.new-item-name').value.trim();
-      if (!name) { card.querySelector('.new-item-name').focus(); return; }
-      addTripItem(trip.id, {
-        name,
-        date:     card.querySelector('.new-item-date').value,
-        category: card.querySelector('.new-item-category').value,
-        notes:    card.querySelector('.new-item-notes').value.trim(),
-      });
-    });
-
-    // Add on Enter in name field
-    card.querySelector('.new-item-name').addEventListener('keydown', e => {
-      if (e.key === 'Enter') card.querySelector('.add-item-btn').click();
+      closeSidebarDrawer();
+      openTripItemModal(trip.id);
     });
 
     container.appendChild(card);
@@ -832,23 +1012,19 @@ function renderNotesTab() {
         <button>Add</button>
       </div>`;
 
-    // Title edit auto-save
     card.querySelector('.notes-card-title').addEventListener('blur', function() {
       list.title = this.value.trim() || list.title;
       saveData();
     });
 
-    // Delete list
     card.querySelector('.notes-list-delete').addEventListener('click', () => deleteNoteList(list.id));
 
-    // Checkboxes
     card.querySelectorAll('.note-item').forEach(row => {
       const itemId = row.dataset.itemId;
       row.querySelector('input[type="checkbox"]').addEventListener('change', () => toggleNoteItem(list.id, itemId));
       row.querySelector('.note-item-delete').addEventListener('click', () => deleteNoteItem(list.id, itemId));
     });
 
-    // Add item
     const addInput = card.querySelector('.add-note-item-form input');
     const addBtn   = card.querySelector('.add-note-item-form button');
     addBtn.addEventListener('click', () => {

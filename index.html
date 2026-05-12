@@ -29,25 +29,25 @@
     </div>
   </header>
 
-  <!-- Directions bar -->
+  <!-- ── Directions Bar (multi-stop) ── -->
   <div id="directions-bar" class="directions-bar hidden">
-    <div class="dir-field">
-      <span class="dir-label">From</span>
-      <span id="dir-origin-name" class="dir-value">—</span>
-      <button id="dir-my-location" class="dir-btn">&#x25CE; My Location</button>
+    <!-- Shortcuts row -->
+    <div class="dir-shortcuts">
+      <button id="dir-my-location" class="dir-shortcut-btn">📍 My Location</button>
+      <div id="dir-home-btns" class="dir-home-btns"></div>
+      <button id="dir-manage-homes" class="dir-btn dir-btn-homes">⚙ Homes</button>
+      <button id="dir-add-stop" class="dir-btn">+ Stop</button>
+      <button id="dir-clear" class="dir-btn dir-btn-clear">✕ Clear</button>
     </div>
-    <div class="dir-arrow">&#x2193;</div>
-    <div class="dir-field">
-      <span class="dir-label">To</span>
-      <span id="dir-dest-name" class="dir-value">—</span>
-    </div>
-    <div class="dir-actions">
+    <!-- Dynamic stops list -->
+    <div id="dir-stops-list" class="dir-stops-list"></div>
+    <!-- Footer: summary + nav buttons + hint -->
+    <div class="dir-footer">
       <span id="dir-summary" class="dir-summary"></span>
       <button id="dir-google-maps" class="dir-btn dir-btn-nav hidden">Google Maps</button>
       <button id="dir-waze" class="dir-btn dir-btn-nav hidden">Waze</button>
-      <button id="dir-clear" class="dir-btn dir-btn-clear">✕ Clear</button>
+      <span id="dir-hint" class="dir-hint">Click a pin on the map to set a stop.</span>
     </div>
-    <p class="dir-hint" id="dir-hint">Click a pin on the map to set the start point, or use My Location.</p>
   </div>
 
   <!-- Main content -->
@@ -137,18 +137,10 @@
       <div class="modal-field">
         <label>Status</label>
         <div class="status-radios">
-          <label class="radio-label visited">
-            <input type="radio" name="status" value="visited" /> ✓ Visited
-          </label>
-          <label class="radio-label plan">
-            <input type="radio" name="status" value="plan" /> ★ Plan to Visit
-          </label>
-          <label class="radio-label wont">
-            <input type="radio" name="status" value="wont" /> ✕ Won't Visit
-          </label>
-          <label class="radio-label favorite">
-            <input type="radio" name="status" value="favorite" /> ♥ Favorite
-          </label>
+          <label class="radio-label visited"><input type="radio" name="status" value="visited" /> ✓ Visited</label>
+          <label class="radio-label plan"><input type="radio" name="status" value="plan" /> ★ Plan to Visit</label>
+          <label class="radio-label wont"><input type="radio" name="status" value="wont" /> ✕ Won't Visit</label>
+          <label class="radio-label favorite"><input type="radio" name="status" value="favorite" /> ♥ Favorite</label>
         </div>
       </div>
       <div class="modal-field">
@@ -174,7 +166,7 @@
       </div>
       <div class="modal-field">
         <label>Main Destination</label>
-        <input id="trip-destination" type="text" placeholder="e.g. Dead Sea Region" />
+        <input id="trip-destination" type="text" placeholder="Search anywhere in the world…" autocomplete="off" />
       </div>
       <div class="modal-field modal-field-row">
         <div>
@@ -193,6 +185,73 @@
       <div class="modal-actions">
         <button id="trip-modal-save" class="btn-primary">Save Trip</button>
         <button id="trip-modal-cancel" class="btn-secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Add Trip Item Modal ── -->
+  <div id="trip-item-modal-overlay" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-drag-handle"></div>
+      <h2>Add Place to Trip</h2>
+      <div class="modal-field">
+        <label>Place (search worldwide)</label>
+        <input id="trip-item-place" type="text" placeholder="Search Google Maps…" autocomplete="off" />
+      </div>
+      <div class="modal-field modal-field-row">
+        <div>
+          <label>Date</label>
+          <input id="trip-item-date" type="date" />
+        </div>
+        <div>
+          <label>Category</label>
+          <select id="trip-item-category">
+            <option value="">— None —</option>
+            <option value="Nature / Hiking">Nature / Hiking</option>
+            <option value="Beach">Beach</option>
+            <option value="City / Town">City / Town</option>
+            <option value="Food &amp; Restaurants">Food &amp; Restaurants</option>
+            <option value="Religious / Historical">Religious / Historical</option>
+            <option value="Parking / Trailhead">Parking / Trailhead</option>
+            <option value="Accommodation">Accommodation</option>
+            <option value="Shopping">Shopping</option>
+            <option value="Viewpoint">Viewpoint</option>
+            <option value="Museum / Culture">Museum / Culture</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-field">
+        <label>Notes</label>
+        <textarea id="trip-item-notes" rows="2" placeholder="e.g. Book in advance, bring sunscreen…"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button id="trip-item-save" class="btn-primary">Add Place</button>
+        <button id="trip-item-cancel" class="btn-secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Homes Management Modal ── -->
+  <div id="homes-modal-overlay" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-drag-handle"></div>
+      <h2>Home Locations</h2>
+      <p class="homes-modal-desc">Saved homes appear as quick-add shortcuts in the directions panel.</p>
+      <div id="homes-list" class="homes-list"></div>
+      <div class="homes-add-form">
+        <div class="modal-field">
+          <label>Label (e.g. My Home)</label>
+          <input id="home-label-input" type="text" placeholder="My Home" maxlength="20" />
+        </div>
+        <div class="modal-field">
+          <label>Address / Place (search worldwide)</label>
+          <input id="home-place-input" type="text" placeholder="Search for your home address…" autocomplete="off" />
+        </div>
+        <button id="home-add-btn" class="btn-primary">Save Home Location</button>
+      </div>
+      <div class="modal-actions" style="margin-top:16px">
+        <button id="homes-close-btn" class="btn-secondary">Close</button>
       </div>
     </div>
   </div>

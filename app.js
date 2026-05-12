@@ -37,6 +37,7 @@ function initMap() {
   initFilterChips();
   initModal();
   initDirections();
+  initSidebarToggle();
 }
 
 // ── Search (Places Autocomplete) ───────────────────────────────────────────────
@@ -154,9 +155,13 @@ function removeMarker(id) {
 function renderSidebar() {
   const list = document.getElementById('location-list');
   const visible = locations.filter(l => activeFilter === 'all' || l.status === activeFilter);
+  const count = visible.length;
 
   document.getElementById('location-count').textContent =
-    `${visible.length} location${visible.length !== 1 ? 's' : ''}`;
+    `${count} location${count !== 1 ? 's' : ''}`;
+
+  const toggleCount = document.getElementById('toggle-count');
+  if (toggleCount) toggleCount.textContent = count;
 
   list.innerHTML = '';
   visible.forEach(loc => {
@@ -170,6 +175,7 @@ function renderSidebar() {
         ${loc.notes ? `<div class="list-note">${escapeHtml(loc.notes)}</div>` : ''}
       </div>`;
     li.addEventListener('click', () => {
+      closeSidebarDrawer();
       if (directionsMode) {
         onDirectionsMarkerClick(loc);
       } else {
@@ -180,6 +186,21 @@ function renderSidebar() {
     });
     list.appendChild(li);
   });
+}
+
+// ── Sidebar drawer (mobile) ────────────────────────────────────────────────────
+function closeSidebarDrawer() {
+  document.querySelector('.sidebar').classList.remove('open');
+  document.getElementById('sidebar-backdrop').classList.remove('open');
+}
+
+function initSidebarToggle() {
+  document.getElementById('sidebar-toggle').addEventListener('click', () => {
+    document.querySelector('.sidebar').classList.add('open');
+    document.getElementById('sidebar-backdrop').classList.add('open');
+  });
+  document.getElementById('sidebar-backdrop').addEventListener('click', closeSidebarDrawer);
+  document.getElementById('sidebar-close').addEventListener('click', closeSidebarDrawer);
 }
 
 // ── Filter chips ───────────────────────────────────────────────────────────────
@@ -386,6 +407,7 @@ function openModal({ id, place } = {}) {
   }
 
   overlay.classList.remove('hidden');
+  closeSidebarDrawer();
   notesInput.focus();
 }
 

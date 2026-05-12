@@ -6,6 +6,13 @@ let activeFilter = 'all';
 let pendingPlace = null;  // place data waiting for modal confirmation
 let editingId = null;     // id of location currently being edited
 
+// ── Directions state ──────────────────────────────────────────────────────────
+let directionsMode = false;
+let dirOrigin = null;     // { name, lat, lng }
+let dirDest = null;       // { name, lat, lng }
+let directionsService = null;
+let directionsRenderer = null;
+
 // ── Status config ─────────────────────────────────────────────────────────────
 const STATUS = {
   visited:  { label: 'Visited',       icon: '✓', color: '#2e7d32', bg: '#4caf50' },
@@ -29,7 +36,7 @@ function initMap() {
   loadData();
   initFilterChips();
   initModal();
-  initSidebarToggle();
+  initDirections();
 }
 
 // ── Search (Places Autocomplete) ───────────────────────────────────────────────
@@ -88,12 +95,19 @@ function saveData() {
 }
 
 // ── Markers ────────────────────────────────────────────────────────────────────
-function markerIcon(status) {
+function markerIcon(status, role) {
   const s = STATUS[status];
+  let fill = s.bg;
+  let stroke = 'white';
+  let strokeWidth = 2;
+  // Highlight origin (green ring) or destination (red ring)
+  if (role === 'origin') { stroke = '#2e7d32'; strokeWidth = 4; }
+  if (role === 'dest')   { stroke = '#c62828'; strokeWidth = 4; }
+
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="36" height="44" viewBox="0 0 36 44">
       <path d="M18 0C8 0 0 8 0 18c0 12 18 26 18 26S36 30 36 18C36 8 28 0 18 0z"
-            fill="${s.bg}" stroke="white" stroke-width="2"/>
+            fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}"/>
       <text x="18" y="24" text-anchor="middle" font-size="16" fill="white"
             font-family="Arial,sans-serif">${s.icon}</text>
     </svg>`;
@@ -112,14 +126,21 @@ function addMarker(loc) {
     icon: markerIcon(loc.status),
   });
 
-  marker.addListener('click', () => openModal({ id: loc.id }));
+  marker.addListener('click', () => {
+    if (directionsMode) {
+      onDirectionsMarkerClick(loc);
+    } else {
+      openModal({ id: loc.id });
+    }
+  });
+
   markers[loc.id] = marker;
   applyFilterToMarker(loc.id);
 }
 
-function updateMarkerIcon(id) {
+function updateMarkerIcon(id, role) {
   const loc = locations.find(l => l.id === id);
-  if (loc && markers[id]) markers[id].setIcon(markerIcon(loc.status));
+  if (loc && markers[id]) markers[id].setIcon(markerIcon(loc.status, role));
 }
 
 function removeMarker(id) {
@@ -133,13 +154,9 @@ function removeMarker(id) {
 function renderSidebar() {
   const list = document.getElementById('location-list');
   const visible = locations.filter(l => activeFilter === 'all' || l.status === activeFilter);
-  const count = visible.length;
 
   document.getElementById('location-count').textContent =
-    `${count} location${count !== 1 ? 's' : ''}`;
-
-  const toggleCount = document.getElementById('toggle-count');
-  if (toggleCount) toggleCount.textContent = count;
+    `${visible.length} location${visible.length !== 1 ? 's' : ''}`;
 
   list.innerHTML = '';
   visible.forEach(loc => {
@@ -153,35 +170,23 @@ function renderSidebar() {
         ${loc.notes ? `<div class="list-note">${escapeHtml(loc.notes)}</div>` : ''}
       </div>`;
     li.addEventListener('click', () => {
-      closeSidebarDrawer();
-      map.panTo({ lat: loc.lat, lng: loc.lng });
-      map.setZoom(14);
-      openModal({ id: loc.id });
+      if (directionsMode) {
+        onDirectionsMarkerClick(loc);
+      } else {
+        map.panTo({ lat: loc.lat, lng: loc.lng });
+        map.setZoom(14);
+        openModal({ id: loc.id });
+      }
     });
     list.appendChild(li);
   });
 }
 
-// ── Sidebar drawer (mobile) ────────────────────────────────────────────────────
-function closeSidebarDrawer() {
-  document.querySelector('.sidebar').classList.remove('open');
-  document.getElementById('sidebar-backdrop').classList.remove('open');
-}
-
-function initSidebarToggle() {
-  document.getElementById('sidebar-toggle').addEventListener('click', () => {
-    document.querySelector('.sidebar').classList.add('open');
-    document.getElementById('sidebar-backdrop').classList.add('open');
-  });
-  document.getElementById('sidebar-backdrop').addEventListener('click', closeSidebarDrawer);
-  document.getElementById('sidebar-close').addEventListener('click', closeSidebarDrawer);
-}
-
 // ── Filter chips ───────────────────────────────────────────────────────────────
 function initFilterChips() {
-  document.querySelectorAll('.chip').forEach(chip => {
+  document.querySelectorAll('[data-filter]').forEach(chip => {
     chip.addEventListener('click', () => {
-      document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      document.querySelectorAll('[data-filter]').forEach(c => c.classList.remove('active'));
       chip.classList.add('active');
       activeFilter = chip.dataset.filter;
       locations.forEach(l => applyFilterToMarker(l.id));
@@ -195,6 +200,156 @@ function applyFilterToMarker(id) {
   if (!loc || !markers[id]) return;
   const visible = activeFilter === 'all' || loc.status === activeFilter;
   markers[id].setMap(visible ? map : null);
+}
+
+// ── Directions ────────────────────────────────────────────────────────────────
+function initDirections() {
+  directionsService = new google.maps.DirectionsService();
+  directionsRenderer = new google.maps.DirectionsRenderer({
+    suppressMarkers: true,
+    polylineOptions: { strokeColor: '#1a73e8', strokeWeight: 5, strokeOpacity: 0.8 },
+  });
+  directionsRenderer.setMap(map);
+
+  document.getElementById('btn-directions').addEventListener('click', toggleDirectionsMode);
+  document.getElementById('dir-clear').addEventListener('click', clearDirections);
+  document.getElementById('dir-my-location').addEventListener('click', useMyLocation);
+  document.getElementById('dir-google-maps').addEventListener('click', openInGoogleMaps);
+  document.getElementById('dir-waze').addEventListener('click', openInWaze);
+}
+
+function toggleDirectionsMode() {
+  directionsMode = !directionsMode;
+  const btn = document.getElementById('btn-directions');
+  const bar = document.getElementById('directions-bar');
+  btn.classList.toggle('active', directionsMode);
+  bar.classList.toggle('hidden', !directionsMode);
+  document.getElementById('map').classList.toggle('dir-selecting', directionsMode);
+  if (!directionsMode) clearDirections();
+}
+
+function onDirectionsMarkerClick(loc) {
+  const point = { name: loc.name, lat: loc.lat, lng: loc.lng };
+  if (!dirOrigin) {
+    setDirOrigin(point);
+  } else if (!dirDest) {
+    setDirDest(point);
+    drawRoute();
+  } else {
+    // Both set — reset and start over with new origin
+    resetDirMarkers();
+    dirDest = null;
+    clearRouteDisplay();
+    setDirOrigin(point);
+  }
+}
+
+function setDirOrigin(point) {
+  dirOrigin = point;
+  document.getElementById('dir-origin-name').textContent = point.name;
+  document.getElementById('dir-origin-name').className = 'dir-value set-origin';
+  document.getElementById('dir-hint').textContent = 'Now click a pin to set the destination.';
+  // Highlight origin marker
+  const loc = locations.find(l => l.name === point.name && Math.abs(l.lat - point.lat) < 0.0001);
+  if (loc) updateMarkerIcon(loc.id, 'origin');
+}
+
+function setDirDest(point) {
+  dirDest = point;
+  document.getElementById('dir-dest-name').textContent = point.name;
+  document.getElementById('dir-dest-name').className = 'dir-value set-dest';
+  document.getElementById('dir-hint').textContent = '';
+  const loc = locations.find(l => l.name === point.name && Math.abs(l.lat - point.lat) < 0.0001);
+  if (loc) updateMarkerIcon(loc.id, 'dest');
+}
+
+function useMyLocation() {
+  if (!navigator.geolocation) {
+    alert('Geolocation is not supported by your browser.');
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const point = { name: 'My Location', lat: pos.coords.latitude, lng: pos.coords.longitude };
+      resetDirMarkers();
+      dirOrigin = null;
+      dirDest = null;
+      clearRouteDisplay();
+      setDirOrigin(point);
+      document.getElementById('dir-hint').textContent = 'Now click a pin to set the destination.';
+    },
+    () => alert('Could not get your location. Please allow location access.')
+  );
+}
+
+function drawRoute() {
+  if (!dirOrigin || !dirDest) return;
+
+  directionsService.route(
+    {
+      origin: { lat: dirOrigin.lat, lng: dirOrigin.lng },
+      destination: { lat: dirDest.lat, lng: dirDest.lng },
+      travelMode: google.maps.TravelMode.DRIVING,
+    },
+    (result, status) => {
+      if (status === 'OK') {
+        directionsRenderer.setDirections(result);
+        const leg = result.routes[0].legs[0];
+        document.getElementById('dir-summary').textContent =
+          `${leg.distance.text} · ${leg.duration.text}`;
+        document.getElementById('dir-google-maps').classList.remove('hidden');
+        document.getElementById('dir-waze').classList.remove('hidden');
+      } else {
+        document.getElementById('dir-summary').textContent = 'Could not find route.';
+      }
+    }
+  );
+}
+
+function clearRouteDisplay() {
+  directionsRenderer.setDirections({ routes: [] });
+  document.getElementById('dir-summary').textContent = '';
+  document.getElementById('dir-google-maps').classList.add('hidden');
+  document.getElementById('dir-waze').classList.add('hidden');
+}
+
+function resetDirMarkers() {
+  // Restore normal icons for previously selected origin/dest
+  if (dirOrigin) {
+    const loc = locations.find(l => Math.abs(l.lat - dirOrigin.lat) < 0.0001);
+    if (loc) updateMarkerIcon(loc.id);
+  }
+  if (dirDest) {
+    const loc = locations.find(l => Math.abs(l.lat - dirDest.lat) < 0.0001);
+    if (loc) updateMarkerIcon(loc.id);
+  }
+}
+
+function clearDirections() {
+  resetDirMarkers();
+  dirOrigin = null;
+  dirDest = null;
+  clearRouteDisplay();
+  document.getElementById('dir-origin-name').textContent = '—';
+  document.getElementById('dir-origin-name').className = 'dir-value';
+  document.getElementById('dir-dest-name').textContent = '—';
+  document.getElementById('dir-dest-name').className = 'dir-value';
+  document.getElementById('dir-hint').textContent = 'Click a pin on the map to set the start point, or use My Location.';
+}
+
+function openInGoogleMaps() {
+  if (!dirOrigin || !dirDest) return;
+  const url = `https://www.google.com/maps/dir/?api=1` +
+    `&origin=${dirOrigin.lat},${dirOrigin.lng}` +
+    `&destination=${dirDest.lat},${dirDest.lng}` +
+    `&travelmode=driving`;
+  window.open(url, '_blank');
+}
+
+function openInWaze() {
+  if (!dirDest) return;
+  const url = `https://waze.com/ul?ll=${dirDest.lat},${dirDest.lng}&navigate=yes`;
+  window.open(url, '_blank');
 }
 
 // ── Modal ──────────────────────────────────────────────────────────────────────
@@ -231,7 +386,6 @@ function openModal({ id, place } = {}) {
   }
 
   overlay.classList.remove('hidden');
-  closeSidebarDrawer();
   notesInput.focus();
 }
 

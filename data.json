@@ -6,6 +6,7 @@
       "lat": 31.758433,
       "lng": 35.502015,
       "status": "visited",
+      "category": "Beach",
       "notes": "",
       "addedAt": "2026-05-12T12:13:32.806Z"
     },
@@ -15,6 +16,7 @@
       "lat": 31.8314794,
       "lng": 35.3069669,
       "status": "visited",
+      "category": "Nature / Hiking",
       "notes": "",
       "addedAt": "2026-05-12T12:13:41.602Z"
     },
@@ -24,8 +26,11 @@
       "lat": 32.5676586,
       "lng": 35.0739565,
       "status": "plan",
+      "category": "Parking / Trailhead",
       "notes": "",
       "addedAt": "2026-05-12T12:18:17.994Z"
     }
-  ]
+  ],
+  "itineraries": [],
+  "notesLists": []
 }

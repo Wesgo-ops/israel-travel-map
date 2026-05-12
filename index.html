@@ -22,14 +22,14 @@
     <div class="filter-chips">
       <button class="chip active" data-filter="all">All</button>
       <button class="chip" data-filter="visited">✓ Visited</button>
-      <button class="chip" data-filter="plan">★ Plan to Visit</button>
-      <button class="chip" data-filter="wont">✕ Won't Visit</button>
+      <button class="chip" data-filter="plan">★ Plan</button>
       <button class="chip" data-filter="favorite">♥ Favorite</button>
+      <button class="chip" data-filter="wont">✕ Won't</button>
       <button id="btn-directions" class="chip directions-chip">&#x2192; Directions</button>
     </div>
   </header>
 
-  <!-- Directions bar (shown when directions mode is active) -->
+  <!-- Directions bar -->
   <div id="directions-bar" class="directions-bar hidden">
     <div class="dir-field">
       <span class="dir-label">From</span>
@@ -53,20 +53,62 @@
   <!-- Main content -->
   <div class="main">
     <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
+
     <!-- Sidebar -->
     <aside class="sidebar">
-      <div class="sidebar-header">
-        <span id="location-count">0 locations</span>
+
+      <!-- Mobile-only header row -->
+      <div class="sidebar-mobile-header">
+        <span class="sidebar-title">Travel Map</span>
         <button id="sidebar-close" class="sidebar-close" aria-label="Close">✕</button>
       </div>
-      <ul id="location-list"></ul>
+
+      <!-- Tabs -->
+      <div class="sidebar-tabs">
+        <button class="tab active" data-tab="locations">📍 Locations</button>
+        <button class="tab" data-tab="itinerary">🗓 Itinerary</button>
+        <button class="tab" data-tab="notes">📝 Notes</button>
+      </div>
+
+      <!-- ── Locations Tab ── -->
+      <div id="tab-locations" class="tab-panel">
+        <div class="stats-row">
+          <div class="stat">
+            <div class="stat-num" id="stat-total">0</div>
+            <div class="stat-label">TOTAL</div>
+          </div>
+          <div class="stat">
+            <div class="stat-num stat-visited" id="stat-visited">0</div>
+            <div class="stat-label">VISITED</div>
+          </div>
+          <div class="stat">
+            <div class="stat-num stat-plan" id="stat-planned">0</div>
+            <div class="stat-label">PLANNED</div>
+          </div>
+        </div>
+        <button id="add-location-btn" class="add-btn">+ Add New Location</button>
+        <ul id="location-list"></ul>
+      </div>
+
+      <!-- ── Itinerary Tab ── -->
+      <div id="tab-itinerary" class="tab-panel hidden">
+        <button id="add-trip-btn" class="add-btn">+ New Trip</button>
+        <div id="itinerary-list"></div>
+      </div>
+
+      <!-- ── Notes Tab ── -->
+      <div id="tab-notes" class="tab-panel hidden">
+        <button id="add-list-btn" class="add-btn">+ New List</button>
+        <div id="notes-list"></div>
+      </div>
+
     </aside>
 
     <!-- Map -->
     <div id="map"></div>
   </div>
 
-  <!-- Add/Edit Modal -->
+  <!-- ── Add/Edit Location Modal ── -->
   <div id="modal-overlay" class="modal-overlay hidden">
     <div class="modal">
       <div class="modal-drag-handle"></div>
@@ -74,6 +116,23 @@
       <div class="modal-field">
         <label>Name</label>
         <input id="modal-name" type="text" readonly />
+      </div>
+      <div class="modal-field">
+        <label>Category</label>
+        <select id="modal-category">
+          <option value="">— None —</option>
+          <option value="Nature / Hiking">Nature / Hiking</option>
+          <option value="Beach">Beach</option>
+          <option value="City / Town">City / Town</option>
+          <option value="Food &amp; Restaurants">Food &amp; Restaurants</option>
+          <option value="Religious / Historical">Religious / Historical</option>
+          <option value="Parking / Trailhead">Parking / Trailhead</option>
+          <option value="Accommodation">Accommodation</option>
+          <option value="Shopping">Shopping</option>
+          <option value="Viewpoint">Viewpoint</option>
+          <option value="Museum / Culture">Museum / Culture</option>
+          <option value="Other">Other</option>
+        </select>
       </div>
       <div class="modal-field">
         <label>Status</label>
@@ -94,7 +153,7 @@
       </div>
       <div class="modal-field">
         <label for="modal-notes">Notes</label>
-        <textarea id="modal-notes" rows="4" placeholder="Add any notes about this place…"></textarea>
+        <textarea id="modal-notes" rows="3" placeholder="Add any notes about this place…"></textarea>
       </div>
       <div class="modal-actions">
         <button id="modal-save" class="btn-primary">Save</button>
@@ -104,11 +163,41 @@
     </div>
   </div>
 
+  <!-- ── Trip Modal ── -->
+  <div id="trip-modal-overlay" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-drag-handle"></div>
+      <h2 id="trip-modal-title">New Trip</h2>
+      <div class="modal-field">
+        <label>Trip Name</label>
+        <input id="trip-name" type="text" placeholder="e.g. Dead Sea Weekend" />
+      </div>
+      <div class="modal-field">
+        <label>Main Destination</label>
+        <input id="trip-destination" type="text" placeholder="e.g. Dead Sea Region" />
+      </div>
+      <div class="modal-field modal-field-row">
+        <div>
+          <label>Start Date</label>
+          <input id="trip-start-date" type="date" />
+        </div>
+        <div>
+          <label>End Date</label>
+          <input id="trip-end-date" type="date" />
+        </div>
+      </div>
+      <div class="modal-field">
+        <label>Notes</label>
+        <textarea id="trip-notes" rows="2" placeholder="Any general notes for this trip…"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button id="trip-modal-save" class="btn-primary">Save Trip</button>
+        <button id="trip-modal-cancel" class="btn-secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <script src="app.js"></script>
-  <!--
-    IMPORTANT: Replace YOUR_API_KEY below with your Google Maps API key.
-    See CLAUDE.md for instructions on how to get one.
-  -->
   <script
     src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBYh0vnLLnZb8G0GOzxWNSRpnJfPPvDZ6I&libraries=places&callback=initMap"
     async defer>

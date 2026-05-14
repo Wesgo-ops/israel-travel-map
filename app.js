@@ -55,7 +55,6 @@ function initMap() {
     fullscreenControl: false,
     streetViewControl: false,
     styles: [],
-    draggableCursor: 'pointer',
   });
 
   placesService = new google.maps.places.PlacesService(map);

@@ -310,7 +310,10 @@ function addMarker(loc) {
 
 function updateMarkerIcon(id) {
   const loc = locations.find(l => l.id === id);
-  if (loc && markers[id]) markers[id].setIcon(markerIcon(loc.status, undefined, loc.name));
+  if (loc && markers[id]) {
+    markers[id].setIcon(markerIcon(loc.status, undefined, loc.name));
+    markers[id].setTitle(loc.name);
+  }
 }
 
 function removeMarker(id) {
@@ -584,9 +587,11 @@ function onModalSave() {
   const status   = getRadio();
   const notes    = document.getElementById('modal-notes').value.trim();
   const category = document.getElementById('modal-category').value;
+  const name     = document.getElementById('modal-name').value.trim() || 'Unnamed';
 
   if (editingId) {
     const loc = locations.find(l => l.id === editingId);
+    loc.name     = name;
     loc.status   = status;
     loc.notes    = notes;
     loc.category = category;
@@ -594,7 +599,7 @@ function onModalSave() {
   } else if (pendingPlace) {
     const loc = {
       id: crypto.randomUUID(),
-      name: pendingPlace.name,
+      name,
       lat: pendingPlace.lat,
       lng: pendingPlace.lng,
       placeId: pendingPlace.placeId || null,

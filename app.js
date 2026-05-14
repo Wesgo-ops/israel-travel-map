@@ -322,6 +322,74 @@ function initModal() {
   document.getElementById('modal-overlay').addEventListener('click', e => {
     if (e.target === document.getElementById('modal-overlay')) closeModal();
   });
+  initModalTodos();
+}
+
+function initModalTodos() {
+  const input  = document.getElementById('modal-todo-input');
+  const addBtn = document.getElementById('modal-todo-add-btn');
+
+  const addTodo = () => {
+    const text = input.value.trim();
+    if (!text || !editingId) return;
+    const loc = locations.find(l => l.id === editingId);
+    if (!loc) return;
+    if (!loc.todos) loc.todos = [];
+    loc.todos.push({ id: crypto.randomUUID(), text, done: false });
+    saveData();
+    input.value = '';
+    renderModalTodos(loc);
+  };
+
+  addBtn.addEventListener('click', addTodo);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') addTodo(); });
+}
+
+function renderModalTodos(loc) {
+  const field    = document.getElementById('modal-todos-field');
+  const list     = document.getElementById('modal-todos-list');
+  const countEl  = document.getElementById('modal-todos-count');
+
+  if (!loc) { field.classList.add('hidden'); return; }
+  field.classList.remove('hidden');
+
+  const todos = loc.todos || [];
+  const doneCount = todos.filter(t => t.done).length;
+  countEl.textContent = todos.length ? `${doneCount} / ${todos.length} done` : '';
+
+  list.innerHTML = '';
+  todos.forEach(todo => {
+    const li = document.createElement('li');
+    li.className = 'modal-todo-item' + (todo.done ? ' done' : '');
+
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = todo.done;
+    cb.addEventListener('change', () => {
+      todo.done = cb.checked;
+      saveData();
+      renderModalTodos(loc);
+    });
+
+    const span = document.createElement('span');
+    span.className = 'modal-todo-text';
+    span.textContent = todo.text;
+
+    const del = document.createElement('button');
+    del.className = 'modal-todo-delete';
+    del.title = 'Delete';
+    del.textContent = '✕';
+    del.addEventListener('click', () => {
+      loc.todos = loc.todos.filter(t => t.id !== todo.id);
+      saveData();
+      renderModalTodos(loc);
+    });
+
+    li.appendChild(cb);
+    li.appendChild(span);
+    li.appendChild(del);
+    list.appendChild(li);
+  });
 }
 
 function openModal({ id, place } = {}) {
@@ -344,6 +412,7 @@ function openModal({ id, place } = {}) {
     catSelect.value  = loc.category || '';
     setRadio(loc.status);
     deleteBtn.classList.remove('hidden');
+    renderModalTodos(loc);
     if (loc.placeId) {
       loadPlaceDetails(loc.placeId);
     } else {
@@ -356,6 +425,7 @@ function openModal({ id, place } = {}) {
     catSelect.value  = '';
     setRadio('visited');
     deleteBtn.classList.add('hidden');
+    renderModalTodos(null);
     if (place.placeId) loadPlaceDetails(place.placeId);
   }
 

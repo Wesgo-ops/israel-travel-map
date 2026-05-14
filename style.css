@@ -1040,6 +1040,122 @@ textarea { resize: vertical; }
   padding-top: 14px;
 }
 
+/* ── Per-location To-do ── */
+.modal-todos-field {
+  border: 1px solid #e8e8e8;
+  border-radius: 10px;
+  padding: 10px 12px 8px;
+  background: #fafafa;
+}
+
+.modal-todos-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.modal-todos-header label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin: 0;
+  cursor: default;
+}
+
+.modal-todos-count {
+  font-size: 11px;
+  color: #aaa;
+  font-weight: 500;
+}
+
+.modal-todos-list {
+  list-style: none;
+  margin-bottom: 6px;
+}
+
+.modal-todo-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.modal-todo-item:last-child { border-bottom: none; }
+
+.modal-todo-item input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+  accent-color: #1a73e8;
+  flex-shrink: 0;
+}
+
+.modal-todo-text {
+  flex: 1;
+  font-size: 13px;
+  color: #333;
+  min-width: 0;
+}
+
+.modal-todo-item.done .modal-todo-text {
+  text-decoration: line-through;
+  color: #bbb;
+}
+
+.modal-todo-delete {
+  background: none;
+  border: none;
+  color: #ddd;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0 2px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: color 0.12s, opacity 0.12s;
+}
+
+.modal-todo-item:hover .modal-todo-delete { opacity: 1; }
+.modal-todo-delete:hover { color: #d32f2f; }
+
+.modal-todos-add {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.modal-todos-add input {
+  flex: 1;
+  padding: 5px 10px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: inherit;
+  outline: none;
+  background: #fff;
+  transition: border-color 0.15s;
+}
+
+.modal-todos-add input:focus { border-color: #1a73e8; }
+.modal-todos-add input::placeholder { color: #bbb; }
+
+.modal-todos-add button {
+  padding: 5px 12px;
+  background: #1a73e8;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.modal-todos-add button:hover { background: #1557b0; }
+
 /* ── Place Details ── */
 .place-details-section { width: 100%; }
 

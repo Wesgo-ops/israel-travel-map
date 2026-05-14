@@ -347,6 +347,28 @@ body {
   box-shadow: 0 8px 32px rgba(0,0,0,0.2);
 }
 
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+.modal-header h2 {
+  font-size: 18px;
+  color: #1a73e8;
+  margin: 0;
+}
+.modal-close-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #888;
+  cursor: pointer;
+  padding: 2px 6px;
+  line-height: 1;
+  border-radius: 4px;
+}
+.modal-close-btn:hover { color: #333; background: #f0f0f0; }
 .modal h2 {
   font-size: 18px;
   margin-bottom: 18px;

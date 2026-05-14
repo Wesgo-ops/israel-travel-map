@@ -452,6 +452,7 @@ function initModal() {
   document.getElementById('modal-save').addEventListener('click', onModalSave);
   document.getElementById('modal-delete').addEventListener('click', onModalDelete);
   document.getElementById('modal-cancel').addEventListener('click', closeModal);
+  document.getElementById('modal-close').addEventListener('click', closeModal);
   document.getElementById('modal-overlay').addEventListener('click', e => {
     if (e.target === document.getElementById('modal-overlay')) closeModal();
   });

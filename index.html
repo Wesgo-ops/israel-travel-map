@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Israel Travel Map</title>
-  <link rel="stylesheet" href="style.css?v=5" />
+  <link rel="stylesheet" href="style.css?v=8" />
 </head>
 <body>
 
@@ -112,7 +112,10 @@
   <div id="modal-overlay" class="modal-overlay hidden">
     <div class="modal">
       <div class="modal-drag-handle"></div>
-      <h2 id="modal-title">Add Location</h2>
+      <div class="modal-header">
+        <h2 id="modal-title">Add Location</h2>
+        <button id="modal-close" class="modal-close-btn" aria-label="Close">✕</button>
+      </div>
       <div class="modal-field">
         <label>Name</label>
         <input id="modal-name" type="text" />
@@ -286,7 +289,7 @@
     <div id="preview-details" class="preview-details"></div>
   </div>
 
-  <script src="app.js?v=7"></script>
+  <script src="app.js?v=8"></script>
   <script
     src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBYh0vnLLnZb8G0GOzxWNSRpnJfPPvDZ6I&libraries=places&callback=initMap"
     async defer>

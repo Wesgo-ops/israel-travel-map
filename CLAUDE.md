@@ -45,6 +45,9 @@ Each location in `data.json` follows this shape:
 ### Live URL
 https://israel-travel-map.fly.dev (hosted on Fly.io, free tier, persistent volume at `/data/data.json`)
 
+### GitHub Repo
+https://github.com/Wesgo-ops/israel-travel-map
+
 ### Deploy an update
 ```bash
 C:\Users\simch\.fly\bin\flyctl.exe deploy

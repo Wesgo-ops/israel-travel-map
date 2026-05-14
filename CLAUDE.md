@@ -40,6 +40,24 @@ Each location in `data.json` follows this shape:
 
 **Status values:** `visited` | `plan` | `wont` | `favorite`
 
+## Deployment
+
+### Live URL
+https://israel-travel-map.fly.dev (hosted on Fly.io, free tier, persistent volume at `/data/data.json`)
+
+### Deploy an update
+```bash
+C:\Users\simch\.fly\bin\flyctl.exe deploy
+```
+**Fly.io does NOT auto-deploy on git push.** You must run `flyctl deploy` manually after pushing changes.
+
+### Workflow
+```
+edit files → git add . && git commit -m "..." && git push → flyctl deploy
+```
+
+---
+
 ## How to Run
 
 ### First time

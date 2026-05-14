@@ -123,13 +123,22 @@ function onMapClick(event) {
         c.types.some(t => ['premise','point_of_interest','establishment',
                            'neighborhood','sublocality','locality'].includes(t))
       );
-      showPlacePreview({
-        name:    nameComp ? nameComp.long_name : best.formatted_address,
-        lat, lng,
-        placeId: null,
-        address: best.formatted_address,
-      });
-      renderPreviewDetails(null);
+      const name    = nameComp ? nameComp.long_name : best.formatted_address;
+      const placeId = best.place_id || null;
+
+      showPlacePreview({ name, lat, lng, placeId, address: best.formatted_address });
+
+      if (placeId) {
+        placesService.getDetails(
+          { placeId, fields: ['photos', 'rating', 'user_ratings_total', 'reviews',
+                              'opening_hours', 'website', 'url', 'formatted_phone_number'] },
+          (place, s) => {
+            renderPreviewDetails(s === google.maps.places.PlacesServiceStatus.OK && place ? place : null);
+          }
+        );
+      } else {
+        renderPreviewDetails(null);
+      }
     });
   }
 }

@@ -55,6 +55,7 @@ function initMap() {
     fullscreenControl: false,
     streetViewControl: false,
     styles: [],
+    draggableCursor: 'pointer',
   });
 
   placesService = new google.maps.places.PlacesService(map);
@@ -128,7 +129,12 @@ function onMapClick(event) {
 
       showPlacePreview({ name, lat, lng, placeId, address: best.formatted_address });
 
-      if (placeId) {
+      const specificTypes = ['street_address', 'route', 'premise', 'subpremise',
+                             'natural_feature', 'park', 'point_of_interest',
+                             'establishment', 'airport', 'transit_station'];
+      const isSpecific = best.types.some(t => specificTypes.includes(t));
+
+      if (placeId && isSpecific) {
         placesService.getDetails(
           { placeId, fields: ['photos', 'rating', 'user_ratings_total', 'reviews',
                               'opening_hours', 'website', 'url', 'formatted_phone_number'] },

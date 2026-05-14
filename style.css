@@ -1040,6 +1040,208 @@ textarea { resize: vertical; }
   padding-top: 14px;
 }
 
+/* ── Place Details ── */
+.place-details-section { width: 100%; }
+
+.pd-divider {
+  border: none;
+  border-top: 1px solid #f0f0f0;
+  margin: 16px 0 14px;
+}
+
+.pd-loading {
+  text-align: center;
+  color: #aaa;
+  font-size: 13px;
+  padding: 10px 0 4px;
+}
+
+/* Photos */
+.pd-photos {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  margin-bottom: 12px;
+  padding-bottom: 2px;
+}
+.pd-photos::-webkit-scrollbar { display: none; }
+
+.pd-photo {
+  width: 140px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.pd-photo:hover { opacity: 0.88; }
+
+/* Rating */
+.pd-rating {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 10px;
+}
+
+.pd-rating-num {
+  font-size: 20px;
+  font-weight: 700;
+  color: #222;
+  line-height: 1;
+}
+
+.pd-stars { display: inline-flex; gap: 1px; }
+
+.pd-star { font-size: 15px; line-height: 1; }
+.pd-star.full  { color: #fbbc04; }
+.pd-star.half  { color: #fbbc04; font-size: 13px; }
+.pd-star.empty { color: #ddd; }
+
+.pd-rating-count {
+  font-size: 12px;
+  color: #888;
+}
+
+/* Hours */
+.pd-hours {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.pd-open-badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+.pd-open-badge.open   { background: #e8f5e9; color: #2e7d32; }
+.pd-open-badge.closed { background: #fdecea; color: #c62828; }
+
+.pd-today-hours { font-size: 12px; color: #555; }
+
+.pd-hours-toggle {
+  background: none;
+  border: none;
+  font-size: 12px;
+  color: #1a73e8;
+  cursor: pointer;
+  padding: 0;
+  margin-left: auto;
+  font-weight: 600;
+}
+
+.pd-hours-list {
+  display: none;
+  width: 100%;
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-top: 2px;
+}
+
+.pd-hours.expanded .pd-hours-list { display: block; }
+
+.pd-hours-row {
+  font-size: 12px;
+  color: #555;
+  padding: 3px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+.pd-hours-row:last-child { border-bottom: none; }
+
+/* Reviews */
+.pd-reviews {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.pd-review {
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.pd-review-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.pd-review-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #e0e0e0;
+}
+
+.pd-review-avatar-placeholder {
+  background: #e0e0e0;
+}
+
+.pd-review-author {
+  font-size: 13px;
+  font-weight: 600;
+  color: #222;
+  line-height: 1.2;
+}
+
+.pd-review-meta {
+  font-size: 11px;
+  color: #888;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+.pd-review-meta .pd-stars .pd-star { font-size: 11px; }
+
+.pd-review-text {
+  font-size: 12px;
+  color: #555;
+  line-height: 1.55;
+}
+
+/* Links */
+.pd-links {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-bottom: 4px;
+}
+
+.pd-link {
+  display: inline-block;
+  padding: 7px 16px;
+  border-radius: 20px;
+  border: 1.5px solid #dadce0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a73e8;
+  text-decoration: none;
+  transition: background 0.12s, border-color 0.12s;
+}
+.pd-link:hover { background: #f0f6ff; border-color: #1a73e8; }
+
+/* Make modal scrollable on desktop when place details expand it */
+.modal {
+  max-height: 88vh;
+  overflow-y: auto;
+}
+
 /* ── Sidebar toggle (mobile only) ── */
 .sidebar-toggle {
   display: none;

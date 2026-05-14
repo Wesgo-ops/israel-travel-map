@@ -17,6 +17,9 @@ let dirStops           = [null, null]; // array of {name,lat,lng} or null
 let directionsService  = null;
 let directionsRenderer = null;
 
+// ── Places service ───────────────────────────────────────────────────────────
+let placesService = null;
+
 // ── Trip item / homes modal state ─────────────────────────────────────────────
 let addingTripItemForTripId = null;
 let tripItemSelectedPlace   = null;
@@ -49,6 +52,7 @@ function initMap() {
     styles: [{ featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] }],
   });
 
+  placesService = new google.maps.places.PlacesService(map);
   initSearch();
   loadData();
   initFilterChips();
@@ -67,7 +71,7 @@ function initSearch() {
   const input = document.getElementById('search-input');
   const autocomplete = new google.maps.places.Autocomplete(input, {
     componentRestrictions: { country: 'il' },
-    fields: ['name', 'geometry'],
+    fields: ['name', 'geometry', 'place_id'],
   });
 
   autocomplete.addListener('place_changed', () => {
@@ -86,6 +90,7 @@ function initSearch() {
         name: place.name,
         lat: place.geometry.location.lat(),
         lng: place.geometry.location.lng(),
+        placeId: place.place_id || null,
       };
       map.panTo(place.geometry.location);
       openModal({ place: pendingPlace });
@@ -327,6 +332,10 @@ function openModal({ id, place } = {}) {
   const catSelect  = document.getElementById('modal-category');
   const deleteBtn  = document.getElementById('modal-delete');
 
+  const detailsSection = document.getElementById('place-details-section');
+  detailsSection.classList.add('hidden');
+  detailsSection.innerHTML = '';
+
   if (id) {
     const loc = locations.find(l => l.id === id);
     document.getElementById('modal-title').textContent = 'Edit Location';
@@ -335,6 +344,11 @@ function openModal({ id, place } = {}) {
     catSelect.value  = loc.category || '';
     setRadio(loc.status);
     deleteBtn.classList.remove('hidden');
+    if (loc.placeId) {
+      loadPlaceDetails(loc.placeId);
+    } else {
+      findAndLoadPlaceDetails(loc.name, loc.lat, loc.lng, loc.id);
+    }
   } else {
     document.getElementById('modal-title').textContent = 'Add Location';
     nameInput.value  = place.name;
@@ -342,6 +356,7 @@ function openModal({ id, place } = {}) {
     catSelect.value  = '';
     setRadio('visited');
     deleteBtn.classList.add('hidden');
+    if (place.placeId) loadPlaceDetails(place.placeId);
   }
 
   overlay.classList.remove('hidden');
@@ -382,6 +397,7 @@ function onModalSave() {
       name: pendingPlace.name,
       lat: pendingPlace.lat,
       lng: pendingPlace.lng,
+      placeId: pendingPlace.placeId || null,
       status,
       category,
       notes,
@@ -1037,6 +1053,130 @@ function renderNotesTab() {
 
     container.appendChild(card);
   });
+}
+
+// ── Place Details ─────────────────────────────────────────────────────────────
+function loadPlaceDetails(placeId) {
+  const section = document.getElementById('place-details-section');
+  section.innerHTML = '<div class="pd-loading">Loading place info…</div>';
+  section.classList.remove('hidden');
+
+  placesService.getDetails(
+    { placeId, fields: ['photos', 'rating', 'user_ratings_total', 'reviews', 'opening_hours', 'website', 'url', 'formatted_phone_number'] },
+    (place, status) => {
+      if (status !== google.maps.places.PlacesServiceStatus.OK || !place) {
+        section.classList.add('hidden');
+        section.innerHTML = '';
+        return;
+      }
+      renderPlaceDetails(place);
+    }
+  );
+}
+
+function findAndLoadPlaceDetails(name, lat, lng, locId) {
+  if (!placesService) return;
+  placesService.findPlaceFromQuery(
+    { query: name, fields: ['place_id'], locationBias: { center: { lat, lng }, radius: 1000 } },
+    (results, status) => {
+      if (status === google.maps.places.PlacesServiceStatus.OK && results && results[0]) {
+        const placeId = results[0].place_id;
+        const loc = locations.find(l => l.id === locId);
+        if (loc) { loc.placeId = placeId; saveData(); }
+        loadPlaceDetails(placeId);
+      }
+    }
+  );
+}
+
+function renderPlaceDetails(place) {
+  const section = document.getElementById('place-details-section');
+  let html = '<div class="pd-divider"></div>';
+
+  // Photos
+  if (place.photos && place.photos.length > 0) {
+    const photos = place.photos.slice(0, 8)
+      .map(p => p.getUrl({ maxWidth: 400, maxHeight: 280 }));
+    html += `<div class="pd-photos">` +
+      photos.map(url => `<img class="pd-photo" src="${url}" alt="" loading="lazy" onclick="window.open('${url}','_blank')" />`).join('') +
+      `</div>`;
+  }
+
+  // Rating
+  if (place.rating) {
+    const count = place.user_ratings_total ? `(${place.user_ratings_total.toLocaleString()} reviews)` : '';
+    html += `
+      <div class="pd-rating">
+        <span class="pd-rating-num">${place.rating.toFixed(1)}</span>
+        <span class="pd-stars">${renderStars(place.rating)}</span>
+        <span class="pd-rating-count">${count}</span>
+      </div>`;
+  }
+
+  // Opening hours
+  if (place.opening_hours) {
+    const isOpen = place.opening_hours.isOpen();
+    const weekdayText = place.opening_hours.weekday_text || [];
+    const todayIdx = (new Date().getDay() + 6) % 7; // Mon=0 … Sun=6
+    const todayText = weekdayText[todayIdx] || '';
+    const todayHours = todayText.replace(/^[^:]+:\s*/, '');
+
+    html += `<div class="pd-hours" id="pd-hours-block">
+      <span class="pd-open-badge ${isOpen ? 'open' : 'closed'}">${isOpen ? 'Open now' : 'Closed'}</span>
+      ${todayHours ? `<span class="pd-today-hours">${escapeHtml(todayHours)}</span>` : ''}
+      ${weekdayText.length ? `<button class="pd-hours-toggle" onclick="document.getElementById('pd-hours-block').classList.toggle('expanded')">▾ All hours</button>
+        <div class="pd-hours-list">${weekdayText.map(t => `<div class="pd-hours-row">${escapeHtml(t)}</div>`).join('')}</div>` : ''}
+    </div>`;
+  }
+
+  // Reviews
+  if (place.reviews && place.reviews.length > 0) {
+    const reviewsHtml = place.reviews.slice(0, 3).map(r => {
+      const snippet = r.text ? (r.text.length > 200 ? r.text.slice(0, 200) + '…' : r.text) : '';
+      const avatar = r.profile_photo_url
+        ? `<img class="pd-review-avatar" src="${r.profile_photo_url}" alt="" />`
+        : `<div class="pd-review-avatar pd-review-avatar-placeholder"></div>`;
+      return `<div class="pd-review">
+        <div class="pd-review-header">
+          ${avatar}
+          <div>
+            <div class="pd-review-author">${escapeHtml(r.author_name)}</div>
+            <div class="pd-review-meta">${renderStars(r.rating)} · ${escapeHtml(r.relative_time_description)}</div>
+          </div>
+        </div>
+        ${snippet ? `<div class="pd-review-text">${escapeHtml(snippet)}</div>` : ''}
+      </div>`;
+    }).join('');
+    html += `<div class="pd-reviews">${reviewsHtml}</div>`;
+  }
+
+  // Links
+  const gmapsUrl  = safeUrl(place.url);
+  const websiteUrl = safeUrl(place.website);
+  const links = [];
+  if (gmapsUrl)   links.push(`<a class="pd-link" href="${gmapsUrl}" target="_blank" rel="noopener">📍 Google Maps</a>`);
+  if (websiteUrl) links.push(`<a class="pd-link" href="${websiteUrl}" target="_blank" rel="noopener">🌐 Website</a>`);
+  if (links.length) html += `<div class="pd-links">${links.join('')}</div>`;
+
+  section.innerHTML = html;
+  section.classList.remove('hidden');
+}
+
+function renderStars(rating) {
+  const full  = Math.floor(rating);
+  const half  = (rating % 1) >= 0.5 ? 1 : 0;
+  const empty = 5 - full - half;
+  return '<span class="pd-star full">★</span>'.repeat(full) +
+         (half ? '<span class="pd-star half">½</span>' : '') +
+         '<span class="pd-star empty">☆</span>'.repeat(empty);
+}
+
+function safeUrl(url) {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    return (u.protocol === 'http:' || u.protocol === 'https:') ? url : null;
+  } catch { return null; }
 }
 
 // ── Utilities ─────────────────────────────────────────────────────────────────

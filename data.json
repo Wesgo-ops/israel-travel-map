@@ -1,37 +1,23 @@
 {
   "locations": [
-    {
-      "id": "d98f09c9-5bae-4c03-bdfc-341c9cadc1cf",
-      "name": "חוף נווה מדבר",
-      "lat": 31.758433,
-      "lng": 35.502015,
-      "status": "visited",
-      "category": "Beach",
-      "notes": "",
-      "addedAt": "2026-05-12T12:13:32.806Z"
-    },
-    {
-      "id": "e10c2153-7917-41a1-9bb0-7a21df8154da",
-      "name": "Ein Prat Nature Reserve",
-      "lat": 31.8314794,
-      "lng": 35.3069669,
-      "status": "visited",
-      "category": "Nature / Hiking",
-      "notes": "",
-      "addedAt": "2026-05-12T12:13:41.602Z"
-    },
-    {
-      "id": "d9f008e0-e78a-4a4a-9bee-e3db68a3a9d3",
-      "name": "חניון אורן זמיר",
-      "lat": 32.5676586,
-      "lng": 35.0739565,
-      "status": "plan",
-      "category": "Parking / Trailhead",
-      "notes": "",
-      "addedAt": "2026-05-12T12:18:17.994Z"
-    }
+    {"id":"d98f09c9-5bae-4c03-bdfc-341c9cadc1cf","name":"חוף נווה מדבר","lat":31.758433,"lng":35.502015,"status":"visited","notes":"","addedAt":"2026-05-12T12:13:32.806Z"},
+    {"id":"e10c2153-7917-41a1-9bb0-7a21df8154da","name":"Ein Prat Nature Reserve","lat":31.8314794,"lng":35.3069669,"status":"visited","notes":"","addedAt":"2026-05-12T12:13:41.602Z"},
+    {"id":"d9f008e0-e78a-4a4a-9bee-e3db68a3a9d3","name":"חניון אורן זמיר","lat":32.5676586,"lng":35.0739565,"status":"plan","notes":"יש איסור כניסה למים עם דוחות","addedAt":"2026-05-12T12:18:17.994Z"},
+    {"id":"67f02932-6a17-4c28-8fcd-f3bfd17acc19","name":"Wadi Arugot","lat":31.4556247,"lng":35.3836856,"status":"visited","notes":"","addedAt":"2026-05-12T14:19:15.764Z"},
+    {"id":"a46f1cd5-69e7-4281-9a89-2a1a3cdeab48","name":"תל ברוך","lat":32.119821,"lng":34.815797,"status":"favorite","notes":"","addedAt":"2026-05-12T14:32:42.620Z"},
+    {"id":"dd461993-370e-4780-8a96-f099ba585675","name":"נחל השופט","lat":32.628333,"lng":35.105822,"status":"plan","notes":"רושמים בווייז חניון חרובי הגבעה","addedAt":"2026-05-12T14:36:48.433Z"},
+    {"id":"2dce5791-32ab-4072-a8e3-4f2c217d12ca","name":"דאלית אל-כרמל","lat":32.6934814,"lng":35.0470183,"status":"plan","notes":"","addedAt":"2026-05-12T14:39:36.875Z"},
+    {"id":"a4a76306-f2d0-48fc-8a58-f6f517becfe4","name":"שמורת טבע עיינות צוקים - עין פשח'ה","lat":31.723942,"lng":35.457662,"status":"visited","notes":"פעם ראשונה שיצאנו לטבע","addedAt":"2026-05-12T14:41:35.960Z"},
+    {"id":"ebb55cad-9a66-4d39-8edf-bac22a3bc651","name":"Halilim Stream","lat":31.8061249,"lng":35.1575032,"status":"visited","notes":"","addedAt":"2026-05-12T14:42:55.279Z"}
   ],
   "itineraries": [],
-  "notesLists": [],
-  "homeLocations": []
+  "notesLists": [
+    {"id":"152eeb8f-7f1e-4694-b736-9c6c18e536f1","title":"Packing List","items":[{"id":"70d84c9e-8e17-4f20-b18f-9b9e0cfa9ee3","text":"Passport","done":false},{"id":"89bfcac0-7c3d-474f-ac30-2ad39e12c367","text":"Sunscreen","done":false},{"id":"55d22dc0-6ac6-4706-bd03-5c62aa6dd5cd","text":"Water bottle","done":false},{"id":"e9e96a72-96f5-472b-a282-c79d879768bb","text":"Comfortable shoes","done":false},{"id":"fc46b0b4-2066-43d0-9c60-f2fd60f10f35","text":"Camera","done":false},{"id":"1a30a187-7e34-4c49-af4d-b784f2d65b2f","text":"Phone charger","done":false},{"id":"a54b2cf7-d8f6-422a-b15a-fc7b8e402c30","text":"Cash / credit cards","done":false},{"id":"937eb0b6-66e1-4be7-9a26-54523f29db25","text":"Medications","done":false},{"id":"6b64cca4-a7b7-4b71-9c1c-0d39fe22f047","text":"Snacks","done":false},{"id":"cd4a837a-fd74-4c0d-a4bd-2d47babe4381f","text":"Swimsuit","done":false}]},
+    {"id":"950d8555-45fe-4e2c-aa75-e8ac62421b09","title":"Before You Go","items":[{"id":"c1b96945-4113-4855-96f1-3835959085df","text":"Book accommodation","done":false},{"id":"7044853e-b016-4cfc-ad24-b57d6095322b","text":"Check visa requirements","done":false},{"id":"2aebdb13-7883-415f-9e23-d85fd5dd836e","text":"Arrange travel insurance","done":false},{"id":"10a16d23-f1be-4f7a-83ac-ef691922549a","text":"Download offline maps","done":false},{"id":"e368bd56-9e9b-445d-a773-5f00950edff0","text":"Notify bank of travel","done":false},{"id":"d2d78502-aa29-427f-90c0-4912bd41dbe9","text":"Charge all devices","done":false},{"id":"b7647f71-bf01-48c6-898d-2ab3f964c909","text":"Print itinerary","done":false},{"id":"e29b8214-4248-4ad9-b381-2fdf2d4a763e","text":"Check weather forecast","done":false}]},
+    {"id":"dfa4538d-2696-43aa-b17b-9be910b1043f","title":"At Each Stop","items":[{"id":"b392c45d-39c3-4a7c-aa72-6eccd2e02495","text":"Take photos","done":false},{"id":"65606545-2a60-4b6b-a9fd-fd6448740183","text":"Note opening hours","done":false},{"id":"abc6e312-d8dd-4eba-be3b-9b660c5a2954","text":"Check local tips","done":false},{"id":"579d5690-fb51-4a56-82b6-38ce98c9ffd3","text":"Try local food","done":false},{"id":"2d06f6a4-b263-4b06-abf3-c8a067a4dac4","text":"Pick up any local maps","done":false}]}
+  ],
+  "homeLocations": [
+    {"id":"5a0466a5-276a-411f-a0f3-bf6ca6095c64","label":"Simcha","name":"Marzouk Ve-Azar St 27, Kiryat Ono, Israel","lat":32.0664866,"lng":34.858612},
+    {"id":"842e4324-8e1c-4b23-8bd5-0fb019a0fcc5","label":"Toby","name":"HaBosem St 3, Mevaseret Zion, Israel","lat":31.7971667,"lng":35.1367485}
+  ]
 }

@@ -18,7 +18,12 @@ let directionsService  = null;
 let directionsRenderer = null;
 
 // ── Places service ───────────────────────────────────────────────────────────
-let placesService = null;
+let placesService  = null;
+
+// ── Place preview panel ───────────────────────────────────────────────────────
+let previewPlace   = null;
+let geocoder       = null;
+let previewPending = false;
 
 // ── Trip item / homes modal state ─────────────────────────────────────────────
 let addingTripItemForTripId = null;
@@ -49,10 +54,12 @@ function initMap() {
     mapTypeControl: false,
     fullscreenControl: false,
     streetViewControl: false,
-    styles: [{ featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] }],
+    styles: [],
   });
 
   placesService = new google.maps.places.PlacesService(map);
+  map.addListener('click', onMapClick);
+  initPreviewPanel();
   initSearch();
   loadData();
   initFilterChips();
@@ -64,6 +71,115 @@ function initMap() {
   initSidebarToggle();
   initTabs();
   initAddLocationBtn();
+}
+
+// ── Map click → preview panel ─────────────────────────────────────────────────
+function onMapClick(event) {
+  if (directionsMode) return;
+  if (!document.getElementById('modal-overlay').classList.contains('hidden')) return;
+  if (previewPending) return;
+
+  if (event.placeId) {
+    event.stop();
+    previewPending = true;
+    showPlacePreview({ name: 'Loading…', lat: event.latLng.lat(), lng: event.latLng.lng(), placeId: event.placeId });
+
+    placesService.getDetails(
+      { placeId: event.placeId,
+        fields: ['name', 'geometry', 'photos', 'rating', 'user_ratings_total',
+                 'reviews', 'opening_hours', 'website', 'url',
+                 'formatted_phone_number', 'formatted_address'] },
+      (place, status) => {
+        previewPending = false;
+        if (status !== google.maps.places.PlacesServiceStatus.OK || !place) {
+          closePreview(); return;
+        }
+        showPlacePreview({
+          name:    place.name,
+          lat:     place.geometry.location.lat(),
+          lng:     place.geometry.location.lng(),
+          placeId: event.placeId,
+          address: place.formatted_address || null,
+        });
+        renderPreviewDetails(place);
+      }
+    );
+  } else {
+    previewPending = true;
+    const lat = event.latLng.lat();
+    const lng = event.latLng.lng();
+    showPlacePreview({ name: 'Loading…', lat, lng, placeId: null });
+
+    if (!geocoder) geocoder = new google.maps.Geocoder();
+    geocoder.geocode({ location: event.latLng }, (results, status) => {
+      previewPending = false;
+      if (status !== 'OK' || !results || !results[0]) {
+        showPlacePreview({ name: `${lat.toFixed(5)}, ${lng.toFixed(5)}`, lat, lng, placeId: null, address: null });
+        renderPreviewDetails(null);
+        return;
+      }
+      const best = results[0];
+      const nameComp = best.address_components.find(c =>
+        c.types.some(t => ['premise','point_of_interest','establishment',
+                           'neighborhood','sublocality','locality'].includes(t))
+      );
+      showPlacePreview({
+        name:    nameComp ? nameComp.long_name : best.formatted_address,
+        lat, lng,
+        placeId: null,
+        address: best.formatted_address,
+      });
+      renderPreviewDetails(null);
+    });
+  }
+}
+
+function showPlacePreview({ name, lat, lng, placeId, address }) {
+  previewPlace = { name, lat, lng, placeId: placeId || null };
+
+  document.getElementById('preview-name').textContent = name;
+
+  const sub = document.getElementById('preview-subtitle');
+  if (address) {
+    sub.textContent = address;
+    sub.classList.remove('hidden');
+  } else {
+    sub.classList.add('hidden');
+  }
+
+  document.getElementById('preview-details').innerHTML = '';
+
+  const panel = document.getElementById('place-preview');
+  panel.classList.remove('hidden');
+  panel.classList.add('open');
+}
+
+function renderPreviewDetails(place) {
+  const el = document.getElementById('preview-details');
+  if (!place) {
+    el.innerHTML = '<div style="padding:12px 0;color:#aaa;font-size:13px;text-align:center;">No additional info available.</div>';
+    return;
+  }
+  renderPlaceDetails(place, el);
+}
+
+function closePreview() {
+  const panel = document.getElementById('place-preview');
+  panel.classList.remove('open');
+  panel.classList.add('hidden');
+  previewPlace   = null;
+  previewPending = false;
+}
+
+function initPreviewPanel() {
+  document.getElementById('preview-close').addEventListener('click', closePreview);
+  document.getElementById('preview-add-btn').addEventListener('click', () => {
+    if (!previewPlace) return;
+    const place = { ...previewPlace };
+    closePreview();
+    pendingPlace = place;
+    openModal({ place });
+  });
 }
 
 // ── Search ────────────────────────────────────────────────────────────────────
@@ -1167,8 +1283,9 @@ function findAndLoadPlaceDetails(name, lat, lng, locId) {
   );
 }
 
-function renderPlaceDetails(place) {
-  const section = document.getElementById('place-details-section');
+function renderPlaceDetails(place, targetEl) {
+  const section = targetEl || document.getElementById('place-details-section');
+  const hoursId = 'pd-hours-' + Date.now();
   let html = '<div class="pd-divider"></div>';
 
   // Photos
@@ -1199,10 +1316,10 @@ function renderPlaceDetails(place) {
     const todayText = weekdayText[todayIdx] || '';
     const todayHours = todayText.replace(/^[^:]+:\s*/, '');
 
-    html += `<div class="pd-hours" id="pd-hours-block">
+    html += `<div class="pd-hours" id="${hoursId}">
       <span class="pd-open-badge ${isOpen ? 'open' : 'closed'}">${isOpen ? 'Open now' : 'Closed'}</span>
       ${todayHours ? `<span class="pd-today-hours">${escapeHtml(todayHours)}</span>` : ''}
-      ${weekdayText.length ? `<button class="pd-hours-toggle" onclick="document.getElementById('pd-hours-block').classList.toggle('expanded')">▾ All hours</button>
+      ${weekdayText.length ? `<button class="pd-hours-toggle" onclick="document.getElementById('${hoursId}').classList.toggle('expanded')">▾ All hours</button>
         <div class="pd-hours-list">${weekdayText.map(t => `<div class="pd-hours-row">${escapeHtml(t)}</div>`).join('')}</div>` : ''}
     </div>`;
   }

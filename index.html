@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Israel Travel Map</title>
-  <link rel="stylesheet" href="style.css?v=3" />
+  <link rel="stylesheet" href="style.css?v=4" />
 </head>
 <body>
 
@@ -272,7 +272,21 @@
     </div>
   </div>
 
-  <script src="app.js?v=3"></script>
+  <!-- ── Place Preview Panel ── -->
+  <div id="place-preview" class="place-preview hidden">
+    <div class="preview-drag-handle"></div>
+    <div class="preview-header">
+      <div class="preview-title-row">
+        <h3 id="preview-name" class="preview-name"></h3>
+        <button id="preview-close" class="preview-close" aria-label="Close">✕</button>
+      </div>
+      <div id="preview-subtitle" class="preview-subtitle hidden"></div>
+      <button id="preview-add-btn" class="preview-add-btn">+ Add to my map</button>
+    </div>
+    <div id="preview-details" class="preview-details"></div>
+  </div>
+
+  <script src="app.js?v=4"></script>
   <script
     src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBYh0vnLLnZb8G0GOzxWNSRpnJfPPvDZ6I&libraries=places&callback=initMap"
     async defer>

@@ -1076,6 +1076,10 @@ function loadPlaceDetails(placeId) {
 
 function findAndLoadPlaceDetails(name, lat, lng, locId) {
   if (!placesService) return;
+  const section = document.getElementById('place-details-section');
+  section.innerHTML = '<div class="pd-loading">Loading place info…</div>';
+  section.classList.remove('hidden');
+
   placesService.findPlaceFromQuery(
     { query: name, fields: ['place_id'], locationBias: { center: { lat, lng }, radius: 1000 } },
     (results, status) => {
@@ -1084,6 +1088,10 @@ function findAndLoadPlaceDetails(name, lat, lng, locId) {
         const loc = locations.find(l => l.id === locId);
         if (loc) { loc.placeId = placeId; saveData(); }
         loadPlaceDetails(placeId);
+      } else {
+        console.warn('findPlaceFromQuery failed:', status, name);
+        section.classList.add('hidden');
+        section.innerHTML = '';
       }
     }
   );

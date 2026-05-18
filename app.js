@@ -32,6 +32,10 @@ let tripItemAutocomplete    = null;
 let tripDestAutocomplete    = null;
 let homeSelectedPlace       = null;
 
+// ── Photos and Current Location ───────────────────────────────────────────────
+let editingLocPhotos = [];
+let currentLocationMarker = null;
+
 // ── Status config ─────────────────────────────────────────────────────────────
 const STATUS = {
   visited:  { label: 'Visited',       icon: '✓', color: '#2e7d32', bg: '#4caf50' },
@@ -64,13 +68,16 @@ function initMap() {
   loadData();
   initFilterChips();
   initModal();
+  initModalPhotos();
   initTripModal();
   initTripItemModal();
   initHomesModal();
   initDirections();
+  initExportImport();
   initSidebarToggle();
   initTabs();
   initAddLocationBtn();
+  initCurrentLocation();
 }
 
 // ── Map click → preview panel ─────────────────────────────────────────────────
@@ -546,7 +553,9 @@ function openModal({ id, place } = {}) {
     catSelect.value  = loc.category || '';
     setRadio(loc.status);
     deleteBtn.classList.remove('hidden');
+    editingLocPhotos = [...(loc.photos || [])];
     renderModalTodos(loc);
+    renderModalPhotos();
     if (loc.placeId) {
       loadPlaceDetails(loc.placeId);
     } else {
@@ -559,7 +568,9 @@ function openModal({ id, place } = {}) {
     catSelect.value  = '';
     setRadio('visited');
     deleteBtn.classList.add('hidden');
+    editingLocPhotos = [];
     renderModalTodos(null);
+    renderModalPhotos();
     if (place.placeId) loadPlaceDetails(place.placeId);
   }
 
@@ -596,6 +607,7 @@ function onModalSave() {
     loc.status   = status;
     loc.notes    = notes;
     loc.category = category;
+    loc.photos   = editingLocPhotos;
     updateMarkerIcon(editingId);
   } else if (pendingPlace) {
     const loc = {
@@ -607,12 +619,14 @@ function onModalSave() {
       status,
       category,
       notes,
+      photos: editingLocPhotos,
       addedAt: new Date().toISOString(),
     };
     locations.push(loc);
     addMarker(loc);
   }
 
+  editingLocPhotos = [];
   saveData();
   renderLocationsTab();
   closeModal();
@@ -641,6 +655,7 @@ function initDirections() {
   document.getElementById('btn-directions').addEventListener('click', toggleDirectionsMode);
   document.getElementById('dir-clear').addEventListener('click', clearDirections);
   document.getElementById('dir-my-location').addEventListener('click', useMyLocation);
+  document.getElementById('dir-save-location').addEventListener('click', saveCurrentLocation);
   document.getElementById('dir-add-stop').addEventListener('click', () => {
     dirStops.push(null);
     renderDirStops();
@@ -740,6 +755,34 @@ function useMyLocation() {
   if (!navigator.geolocation) { alert('Geolocation not supported.'); return; }
   navigator.geolocation.getCurrentPosition(
     pos => addDirStop({ name: '📍 My Location', lat: pos.coords.latitude, lng: pos.coords.longitude }),
+    () => alert('Could not get your location.')
+  );
+}
+
+function saveCurrentLocation() {
+  if (!navigator.geolocation) { alert('Geolocation not supported.'); return; }
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+
+      const loc = {
+        id: crypto.randomUUID(),
+        name: 'My Location',
+        lat,
+        lng,
+        status: 'visited',
+        category: '',
+        notes: 'Saved on ' + new Date().toLocaleString(),
+        addedAt: new Date().toISOString(),
+      };
+
+      locations.push(loc);
+      addMarker(loc);
+      saveData();
+      renderLocationsTab();
+      alert('Current location saved as "My Location"');
+    },
     () => alert('Could not get your location.')
   );
 }
@@ -1392,6 +1435,252 @@ function safeUrl(url) {
     const u = new URL(url);
     return (u.protocol === 'http:' || u.protocol === 'https:') ? url : null;
   } catch { return null; }
+}
+
+// ── Photos ────────────────────────────────────────────────────────────────────
+function initModalPhotos() {
+  const addBtn = document.getElementById('modal-photo-add-btn');
+  const input = document.getElementById('modal-photo-input');
+
+  addBtn.addEventListener('click', () => input.click());
+  input.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = evt => {
+      editingLocPhotos.push(evt.target.result);
+      renderModalPhotos();
+      input.value = '';
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderModalPhotos() {
+  const field = document.getElementById('modal-photos-field');
+  const gallery = document.getElementById('modal-photos-gallery');
+  const countEl = document.getElementById('modal-photos-count');
+
+  if (!editingLocPhotos || editingLocPhotos.length === 0) {
+    field.classList.add('hidden');
+    return;
+  }
+
+  field.classList.remove('hidden');
+  gallery.innerHTML = '';
+  countEl.textContent = `(${editingLocPhotos.length})`;
+
+  editingLocPhotos.forEach((photo, idx) => {
+    const item = document.createElement('div');
+    item.className = 'photo-item';
+    item.innerHTML = `<img src="${photo}" alt="photo" />`;
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'photo-item-delete';
+    delBtn.textContent = '✕';
+    delBtn.addEventListener('click', () => {
+      editingLocPhotos.splice(idx, 1);
+      renderModalPhotos();
+    });
+
+    item.appendChild(delBtn);
+    gallery.appendChild(item);
+  });
+}
+
+// ── Export / Import ───────────────────────────────────────────────────────────
+function initExportImport() {
+  const openBtn = document.getElementById('btn-export-import');
+  const closeBtn = document.getElementById('export-import-close');
+  const overlay = document.getElementById('export-import-modal-overlay');
+
+  openBtn.addEventListener('click', () => {
+    overlay.classList.remove('hidden');
+  });
+
+  closeBtn.addEventListener('click', () => {
+    overlay.classList.add('hidden');
+  });
+
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) overlay.classList.add('hidden');
+  });
+
+  document.getElementById('btn-export-json').addEventListener('click', exportJSON);
+  document.getElementById('btn-export-csv').addEventListener('click', exportCSV);
+  document.getElementById('btn-import').addEventListener('click', () => {
+    document.getElementById('import-file-input').click();
+  });
+
+  document.getElementById('import-file-input').addEventListener('change', importFile);
+}
+
+function exportJSON() {
+  const data = { locations, itineraries, notesLists, homeLocations };
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `israel-travel-map-${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportCSV() {
+  let csv = 'Name,Status,Lat,Lng,Category,Notes,Added At\n';
+  locations.forEach(loc => {
+    const name = (loc.name || '').replace(/"/g, '""');
+    const notes = (loc.notes || '').replace(/"/g, '""');
+    const category = (loc.category || '').replace(/"/g, '""');
+    csv += `"${name}","${loc.status}",${loc.lat},${loc.lng},"${category}","${notes}","${loc.addedAt || ''}"\n`;
+  });
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `israel-travel-map-${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const statusEl = document.getElementById('import-status');
+  const reader = new FileReader();
+
+  reader.onload = evt => {
+    try {
+      const content = evt.target.result;
+      let data;
+
+      if (file.name.endsWith('.json')) {
+        data = JSON.parse(content);
+        if (!data.locations) throw new Error('Invalid JSON format');
+      } else if (file.name.endsWith('.csv')) {
+        data = parseCSV(content);
+      } else {
+        throw new Error('Unsupported file type');
+      }
+
+      if (confirm('Replace all data with imported file? This cannot be undone.')) {
+        locations = data.locations || [];
+        itineraries = data.itineraries || [];
+        notesLists = data.notesLists || [];
+        homeLocations = data.homeLocations || [];
+
+        Object.values(markers).forEach(m => m.setMap(null));
+        markers = {};
+        locations.forEach(addMarker);
+
+        saveData();
+        renderLocationsTab();
+        renderItineraryTab();
+        renderNotesTab();
+        renderDirHomeBtns();
+
+        statusEl.textContent = 'Import successful!';
+        statusEl.style.color = '#2e7d32';
+        setTimeout(() => {
+          statusEl.textContent = '';
+          document.getElementById('export-import-modal-overlay').classList.add('hidden');
+        }, 2000);
+      }
+    } catch (err) {
+      statusEl.textContent = 'Error: ' + err.message;
+      statusEl.style.color = '#d32f2f';
+    }
+    e.target.value = '';
+  };
+
+  reader.readAsText(file);
+}
+
+function parseCSV(csv) {
+  const lines = csv.trim().split('\n');
+  const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+  const locations = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line.trim()) continue;
+
+    const values = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let j = 0; j < line.length; j++) {
+      const char = line[j];
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        values.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    values.push(current.trim());
+
+    const row = {};
+    headers.forEach((h, idx) => {
+      let val = values[idx] || '';
+      if (val.startsWith('"') && val.endsWith('"')) {
+        val = val.slice(1, -1).replace(/""/g, '"');
+      }
+      row[h] = val;
+    });
+
+    if (row.name) {
+      locations.push({
+        id: crypto.randomUUID(),
+        name: row.name || 'Unnamed',
+        lat: parseFloat(row.lat) || 0,
+        lng: parseFloat(row.lng) || 0,
+        status: row.status || 'plan',
+        category: row.category || '',
+        notes: row.notes || '',
+        addedAt: row['added at'] || new Date().toISOString(),
+      });
+    }
+  }
+
+  return { locations, itineraries: [], notesLists: [], homeLocations: [] };
+}
+
+// ── Current Location ───────────────────────────────────────────────────────────
+function initCurrentLocation() {
+  if (!navigator.geolocation) return;
+
+  navigator.geolocation.watchPosition(
+    pos => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+
+      if (currentLocationMarker) {
+        currentLocationMarker.setPosition({ lat, lng });
+      } else {
+        currentLocationMarker = new google.maps.Marker({
+          position: { lat, lng },
+          map,
+          title: 'Your Location',
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 8,
+            fillColor: '#1a73e8',
+            fillOpacity: 0.8,
+            strokeColor: '#fff',
+            strokeWeight: 2,
+          },
+          zIndex: 999,
+        });
+      }
+    },
+    () => {}
+  );
 }
 
 // ── Utilities ─────────────────────────────────────────────────────────────────

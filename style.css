@@ -1618,3 +1618,102 @@ textarea { resize: vertical; }
     margin: 14px auto 18px;
   }
 }
+
+/* ── Sidebar Actions ── */
+.sidebar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 16px;
+}
+
+/* ── Export/Import Modal ── */
+.export-import-section {
+  margin-bottom: 20px;
+}
+
+.export-import-section h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+.export-import-divider {
+  height: 1px;
+  background: #e0e0e0;
+  margin: 16px 0;
+}
+
+/* ── Photos Gallery ── */
+.modal-photos-field {
+  margin-bottom: 16px;
+}
+
+.modal-photos-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.modal-photos-count {
+  font-size: 12px;
+  color: #999;
+  font-weight: 400;
+}
+
+.modal-photos-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.photo-item {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f0f0f0;
+  cursor: pointer;
+}
+
+.photo-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-item-delete {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.photo-item:hover .photo-item-delete {
+  opacity: 1;
+}
+
+.modal-photos-add {
+  display: flex;
+}
+
+.modal-photos-add button {
+  flex: 1;
+}

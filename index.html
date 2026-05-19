@@ -34,6 +34,7 @@
     <!-- Shortcuts row -->
     <div class="dir-shortcuts">
       <button id="dir-my-location" class="dir-shortcut-btn">📍 My Location</button>
+      <button id="dir-save-location" class="dir-shortcut-btn">💾 Save Location</button>
       <div id="dir-home-btns" class="dir-home-btns"></div>
       <button id="dir-manage-homes" class="dir-btn dir-btn-homes">⚙ Homes</button>
       <button id="dir-add-stop" class="dir-btn">+ Stop</button>
@@ -86,7 +87,10 @@
             <div class="stat-label">PLANNED</div>
           </div>
         </div>
-        <button id="add-location-btn" class="add-btn">+ Add New Location</button>
+        <div class="sidebar-actions">
+          <button id="add-location-btn" class="add-btn">+ Add New Location</button>
+          <button id="btn-export-import" class="add-btn">⬇⬆ Export/Import</button>
+        </div>
         <ul id="location-list"></ul>
       </div>
 
@@ -160,6 +164,19 @@
         <div class="modal-todos-add">
           <input id="modal-todo-input" type="text" placeholder="Add a to-do item…" />
           <button id="modal-todo-add-btn" type="button">+ Add</button>
+        </div>
+      </div>
+
+      <!-- Photos Gallery -->
+      <div id="modal-photos-field" class="modal-field modal-photos-field hidden">
+        <div class="modal-photos-header">
+          <label>📷 Photos</label>
+          <span id="modal-photos-count" class="modal-photos-count"></span>
+        </div>
+        <div id="modal-photos-gallery" class="modal-photos-gallery"></div>
+        <div class="modal-photos-add">
+          <input id="modal-photo-input" type="file" accept="image/*" style="display:none;" />
+          <button id="modal-photo-add-btn" type="button">+ Add Photo</button>
         </div>
       </div>
 
@@ -271,6 +288,31 @@
       </div>
       <div class="modal-actions" style="margin-top:16px">
         <button id="homes-close-btn" class="btn-secondary">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Export/Import Modal ── -->
+  <div id="export-import-modal-overlay" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-drag-handle"></div>
+      <div class="modal-header">
+        <h2>Export / Import Data</h2>
+        <button id="export-import-close" class="modal-close-btn" aria-label="Close">✕</button>
+      </div>
+      <div class="export-import-section">
+        <h3>Export Data</h3>
+        <p style="font-size: 13px; color: #666; margin-bottom: 12px;">Download your locations as a file.</p>
+        <button id="btn-export-json" class="btn-primary">📥 Export as JSON</button>
+        <button id="btn-export-csv" class="btn-primary">📥 Export as CSV</button>
+      </div>
+      <div class="export-import-divider"></div>
+      <div class="export-import-section">
+        <h3>Import Data</h3>
+        <p style="font-size: 13px; color: #666; margin-bottom: 12px;">Upload a previously exported file. This will replace your current data.</p>
+        <input id="import-file-input" type="file" accept=".json,.csv" style="display:none;" />
+        <button id="btn-import" class="btn-secondary">📤 Import File</button>
+        <span id="import-status" style="font-size: 12px; color: #999; margin-left: 8px;"></span>
       </div>
     </div>
   </div>

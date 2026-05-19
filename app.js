@@ -1462,31 +1462,28 @@ function renderModalPhotos() {
   const gallery = document.getElementById('modal-photos-gallery');
   const countEl = document.getElementById('modal-photos-count');
 
-  if (!editingLocPhotos || editingLocPhotos.length === 0) {
-    field.classList.add('hidden');
-    return;
-  }
-
   field.classList.remove('hidden');
   gallery.innerHTML = '';
-  countEl.textContent = `(${editingLocPhotos.length})`;
+  countEl.textContent = editingLocPhotos && editingLocPhotos.length > 0 ? `(${editingLocPhotos.length})` : '';
 
-  editingLocPhotos.forEach((photo, idx) => {
-    const item = document.createElement('div');
-    item.className = 'photo-item';
-    item.innerHTML = `<img src="${photo}" alt="photo" />`;
+  if (editingLocPhotos && editingLocPhotos.length > 0) {
+    editingLocPhotos.forEach((photo, idx) => {
+      const item = document.createElement('div');
+      item.className = 'photo-item';
+      item.innerHTML = `<img src="${photo}" alt="photo" />`;
 
-    const delBtn = document.createElement('button');
-    delBtn.className = 'photo-item-delete';
-    delBtn.textContent = '✕';
-    delBtn.addEventListener('click', () => {
-      editingLocPhotos.splice(idx, 1);
-      renderModalPhotos();
+      const delBtn = document.createElement('button');
+      delBtn.className = 'photo-item-delete';
+      delBtn.textContent = '✕';
+      delBtn.addEventListener('click', () => {
+        editingLocPhotos.splice(idx, 1);
+        renderModalPhotos();
+      });
+
+      item.appendChild(delBtn);
+      gallery.appendChild(item);
     });
-
-    item.appendChild(delBtn);
-    gallery.appendChild(item);
-  });
+  }
 }
 
 // ── Export / Import ───────────────────────────────────────────────────────────

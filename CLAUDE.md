@@ -33,12 +33,24 @@ Each location in `data.json` follows this shape:
   "lat": 31.7683,
   "lng": 35.2137,
   "status": "visited",
+  "category": "Religious / Historical",
   "notes": "Old City is incredible",
+  "photos": ["data:image/jpeg;base64,..."],
   "addedAt": "2026-05-12T10:00:00Z"
 }
 ```
 
 **Status values:** `visited` | `plan` | `wont` | `favorite`
+
+**Fields:**
+- `id` — UUID v4, unique identifier
+- `name` — Location name
+- `lat`, `lng` — Coordinates
+- `status` — Visit status (required)
+- `category` — Optional location category (e.g., "Nature / Hiking", "Beach", etc.)
+- `notes` — Optional user notes
+- `photos` — Optional array of photos as base64 data URLs
+- `addedAt` — ISO timestamp when location was added
 
 ## Deployment
 
@@ -134,3 +146,30 @@ Colors: Visited=green, Plan=blue, Won't Visit=gray, Favorite=gold.
 ### Search
 Uses Google Places Autocomplete restricted to Israel (`componentRestrictions: { country: 'il' }`).
 Selecting a result opens the Add modal with name/coordinates pre-filled.
+
+---
+
+## Features
+
+### Export / Import
+Users can export all data as **JSON** or **CSV** for backup or migration:
+- JSON export includes all data (locations, itineraries, notes, home locations, photos)
+- CSV export includes: Name, Status, Lat, Lng, Category, Notes, Added At (photos excluded)
+- Import accepts previously exported JSON or CSV files
+- UI: "⬇⬆ Export/Import" button in Locations tab sidebar
+
+### Photos / Gallery
+Users can attach images to locations:
+- Add photos via file upload in location modal
+- Photos displayed as a grid in the modal
+- Photos stored as base64 data URLs in the photos array
+- Photos persist with data.json and are included in JSON exports
+- UI: "📷 Photos" section in location modal with add/delete buttons
+
+### Current Location
+Real-time geolocation features:
+- Blue circle marker shows user's current location on map (updates in real-time)
+- "📍 My Location" button in directions bar uses current location for navigation
+- "💾 Save Location" button in directions bar saves current GPS coordinates as a new location
+- Uses browser Geolocation API (requires user permission)
+- UI: Buttons in directions bar, blue marker on map
